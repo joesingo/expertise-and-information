@@ -32,7 +32,7 @@ structure Frame (α : Type) :=
   (has_expertise : set α -> Prop)
 
 -- expertise model: extend a frame by adding a valuation function
---% latex label: def_expertise_model
+--% latex_label: def_expertise_model
 structure Model (α : Type) extends Frame α :=
   (val : ℕ → α → Prop)
 

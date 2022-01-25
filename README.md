@@ -14,6 +14,7 @@ The proofs were checked with Lean version 3.35.1. To build, set up
 The following results/definitions have been formalised (links go to the
 relevant section of the source code):
 
+* [Definition 1](lean/src/basic.lean#L36)
 * [Proposition 2](lean/src/frame_properties.lean#L31)
 * [Definition 2](lean/src/epistemic_logic.lean#L314)
 * [Definition 3](lean/src/epistemic_logic.lean#L21)
