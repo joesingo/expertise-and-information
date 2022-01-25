@@ -25,6 +25,10 @@ relevant section of the source code):
 * Corollary 1: [1](lean/src/completeness.lean#L173), [2](lean/src/completeness.lean#L194)
 * [Lemma 9](lean/src/completeness.lean#L284)
 * [Theorem 4](lean/src/completeness.lean#L667)
+* [Proposition 4](lean/src/multi_source.lean#L373)
+* [Lemma 10](lean/src/multi_source.lean#L177)
+* [Proposition 6](lean/src/multi_source.lean#L487)
+* [Theorem 8](lean/src/multi_source.lean#L571)
 
 This list is automatically generated from the Lean/LaTeX source by the scripts
 in the `python` directory.

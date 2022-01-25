@@ -27,6 +27,31 @@ def usage(exit_code):
     )
     sys.exit(exit_code)
 
+def parse_brackets(s):
+    """
+    parse a string of the form {s1}{s2}...{sn}
+    """
+    while s:
+        if not s.startswith("{"):
+            raise ValueError
+        s = s[1:]
+        part = ""
+        brackets = 0
+        # read up to the matching '}' (not necessarily the *first* one, if the
+        # substring contains a bracket pair)
+        while s:
+            c = s[0]
+            s = s[1:]
+            if c == "}" and brackets == 0:
+                break
+
+            if c == "{":
+                brackets += 1
+            elif c == "}":
+                brackets -= 1
+            part += c
+        yield part
+
 def main():
     args = sys.argv[1:]
     try:
@@ -74,8 +99,8 @@ def main():
             line = line[1:-1]             # remove surrounding brackets
             # name is 4th component
             try:
-                name = line.split("}")[3][1:]
-            except IndexError:
+                name = list(parse_brackets(line))[3]
+            except (ValueError, IndexError):
                 continue
             # sanitise name
             name = name.replace(".", " ").title()

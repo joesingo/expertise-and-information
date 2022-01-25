@@ -173,9 +173,11 @@ namespace multi_source
 
 variables {α J : Type}
 
--- the definition of common knowledge above (i.e. usual relational semantics
--- corresponding to the transitive closure of the union of relations) coincides
--- with the usual one in terms of iterated shared knowledge
+--% latex_label: lemma_common_knowledge_transitive_closure
+--
+-- we show that the definition of common knowledge above (i.e. usual relational
+-- semantics corresponding to the transitive closure of the union of relations)
+-- coincides with the usual one in terms of iterated shared knowledge
 
 @[simp] def iterated_shared (js : set J) : MSKFormula J -> ℕ -> MSKFormula J
   | φ 0       := φ
@@ -367,6 +369,7 @@ end
 
 -- epistemic accessibility relation corresponding to distributed expertise is
 -- the intersection of the individual relations
+--% latex_label: prop_rpdist
 lemma dist_ep_relation_intersection :
   ∀ m : MSModel α J, ∀ js : set J, ∀ x y : α,
     (dist_ep_relation m js) x y <-> ∀ j ∈ js, (indiv_ep_relation m j) x y :=
@@ -480,6 +483,7 @@ end
 
 -- the relation corresponding to common expertise is the transitive closure of
 -- the union of the individual relations
+--% latex_label: prop_rcommon
 lemma com_ep_relation_union : ∀ m : MSModel α J, ∀ js : set J, js.nonempty ->
   ms_closed_under_unions m -> ms_closed_under_intersections m -> ∀ x y : α,
     (com_ep_relation m js) x y <-> (transitive_closure (union_ep_relation m js)) x y :=
@@ -563,6 +567,7 @@ end
   | (S_com js ; φ)  := no_empty_coalition φ ∧ js.nonempty
 
 -- multi-source generalisation of the ealier translation result
+--% latex_label: thm_collective_s4s5_translation
 theorem ms_semantic_translation :
   ∀ m : MSModel α J, ms_closed_under_unions m -> ms_closed_under_intersections m ->
     ∀ φ : MSFormula J, no_empty_coalition φ -> ∀ x : α,
