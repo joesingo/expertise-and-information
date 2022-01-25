@@ -3,6 +3,9 @@
 This repository contains the LaTeX source for the paper, the appendix
 (containing missing proofs), and formalisation of some of the proofs in Lean.
 
+- [Paper](latex/main.pdf)
+- [Appendix](latex/appendix.pdf)
+
 The proofs were checked with Lean version 3.35.1. To build, set up
 [leanproject](https://leanprover-community.github.io/leanproject.html) and run
 `leanproject get-mathlib-cache` followed by `leanproject build`, from the
