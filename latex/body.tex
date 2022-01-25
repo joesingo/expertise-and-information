@@ -1,0 +1,2459 @@
+\section{Introduction}
+
+In order to properly assess incoming information, it is important to consider
+the expertise of the reporting source. We should generally believe statements
+within the domain of expertise of the source, but ignore (or otherwise
+discount) statements about which the source has no expertise. This applies even
+when dealing with honest sources: a well-meaning but non-expert source may make
+false claims due to lack of expertise on the relevant facts.
+%
+The situation may be further complicated if a source comments on multiple
+topics at once: we must \emph{filter out} the parts of the statement within
+their domain of expertise.
+
+Expertise has been well-studied, with perspectives from behavioural and
+cognitive science \citep{chi2014nature,ericsson2010expertise}, sociology
+\citep{collins2008rethinking}, and philosophy
+\citep{kilov2021brittleness,whyte2010trust,goldman2018expertise}, among other
+fields. In this work we study the \emph{logical} content of expertise, and its
+relation to truthfulness of information.
+
+Specifically, we generalise the \emph{modal logic} setting
+of~\citet{singleton2021logic}. The two core notions of the framework are
+\emph{expertise} and \emph{soundness of information}. Intuitively, a source has
+expertise on $\phi$ if they are able to correctly refute $\phi$ in any
+situation where it is false.\footnotemark{} Thus, our notion of expertise
+\emph{does not depend on the ``actual" state of affairs}, but only on the
+source's epistemic state.
+
+\footnotetext{
+    Note that we could instead consider the dual case: expertise means being
+    able to \emph{verify} when a proposition is true.
+}
+
+It is \emph{sound} for a source to report $\phi$ if $\phi$ is true \emph{up to
+lack of expertise}: if $\phi$ is logically weakened to a proposition $\psi$ on
+which the source has expertise, then $\psi$ must be true. This formalises the
+idea of ``filtering out" parts of a statement within a source's expertise: we
+discard information by going from $\phi$ to the weaker statement $\psi$, and
+obtain the guarantee that at least $\psi$ holds, even if $\phi$ does not.
+%
+In terms of refutation, $\phi$ is sound if the source cannot refute $\neg\phi$.
+That is, either $\phi$ is in fact true, or the source does not possess
+sufficient expertise to rule out $\phi$.
+
+This informal picture of expertise already suggests a close connection between
+expertise, soundness and \emph{knowledge}. Indeed, we will see that, under
+certain conditions, expertise can be equivalently interpreted in terms of
+\emph{S4 or S5 knowledge}, familiar from epistemic logic.
+
+Beyond the individual expertise of a single source, one can also consider the
+\emph{collective expertise} of a group. For example, consider a government
+composed of ministers and officials. While it would be unreasonable to expect
+each individual to have expertise on all areas of policy, one hopes that there
+is sufficient broadness of expertise among the government so that this is the
+case \emph{collectively} (i.e. if expertise is ``pooled together"). Such
+collective expertise may even go beyond the sum of its parts: if $A$ is an
+expert on policy area $X$ and $B$ is an expert on how $X$ affects some other
+area $Y$, then together $A$ and $B$ will have expertise on $Y$.
+
+Towards defining collective expertise we will again turn to (multi-agent)
+epistemic logic, borrowing from the well-known notions of \emph{distributed}
+and \emph{common knowledge}~\citep{fagin2003reasoning}. Just as individual
+expertise (and soundness) can be expressed in terms of knowledge, we will see
+that collective expertise can be expressed in terms of collective knowledge.
+
+\textbf{Contributions.} On the conceptual side, we extend the modal framework
+of expertise of \citet{singleton2021logic} to reason about the expertise of
+sources and soundness of information. We generalise this framework by working
+with a more general semantics and introducing collective expertise among
+multiple sources.
+%
+On the technical side we obtain axiomatisations for the more general semantics,
+and axiomatise several new sub-classes of models with additional axioms.
+
+\textbf{Paper outline.} In \cref{sec_expertise_and_soundness} we give a
+motivating example and define the syntax and semantics.
+\Cref{sec_closure_properties} looks at how expertise may be closed under
+certain operations (e.g. conjunction, negation). The core connection with
+epistemic logic is given in \cref{sec_connection_with_ep_logic}. We turn to
+axiomatics in \cref{sec_axiomatisation}, and give sound and complete logics for
+various classes of expertise models. In \cref{sec_multisource} we generalise to
+multiple sources, and \cref{sec_conclusion} concludes. Where proofs are omitted
+or only sketched, the full details can be found in the
+appendix.\footnote{\todo{url}} Several of the main proofs have also been
+formalised with the Lean theorem prover.\footnote{\todo{url}}
+
+\section{Expertise and Soundness}
+\label{sec_expertise_and_soundness}
+
+Before the formal definitions we give an example to illustrate the notions of
+\emph{expertise} and \emph{soundness}, which are central to the framework.
+
+\begin{example}
+    \label{ex_economist_motivation}
+
+    Consider an economist reporting on the possible impact of a novel virus
+    which has recently been detected. The virus may or may not be highly
+    infectious ($i$) and go on to cause a high death toll ($d$), and there may
+    or may not be economic prosperity in the near future ($p$). The economist
+    reports that despite the virus, the economy will prosper and there will not
+    be mass deaths ($p \land \neg d$). Assume the economist is an expert on
+    matters relating to the economy ($\E p$, $\E\neg p$), but not on matters of
+    public health ($\neg\E d$, $\neg\E\neg d$). For the sake of the example,
+    suppose the virus will in fact cause a high death toll, but the economy
+    will nonetheless prosper. Then while the report of $p \land \neg d$ is
+    false, it is true if one \emph{ignores the parts on which the economist has
+    no expertise} (namely, $\neg d$); in doing so we obtain $p$, which is true.
+    The report therefore carries \emph{some} true information, even though it
+    is false. We say $p \land \neg d$ is \emph{sound} in this case.
+
+\end{example}
+
+\paragraph{Syntax}
+
+Let $\Prop$ be a countable set of atomic propositions. Our language
+includes modal operators to express expertise and soundness statements for a
+single source. Formally, define $\cL$ by the following grammar:
+\[
+\phi ::=
+ p \mid
+ \phi \land \psi \mid
+ \neg\phi \mid
+ \E\phi \mid
+ \S\phi \mid
+ \A\phi
+\]
+for $p \in \Prop$. We read $\E\phi$ as ``the source has expertise on
+$\phi$, and $\S\phi$ has ``$\phi$ is sound for the source to
+report". We include the universal modality $\A$~\citep{goranko_1992}
+for technical convenience; $\A\phi$ is read as ``$\phi$ holds in all
+states".  Other logical connectives ($\lor$, $\limplies$,
+$\liff$) and constants ($\top$, $\bot$) are introduced as
+abbreviations.
+
+\paragraph{Semantics}
+
+On the semantic side, we use the notion of an \emph{expertise model}.
+
+\begin{definition}
+    \label{def_expertise_model}
+
+    An \emph{expertise model} is a triple $M = (X, P, V)$, where $X$ is a set
+    of states, $P \subseteq 2^X$ is a collection of subsets of $X$, and $V:
+    \Prop \to 2^X$ is a valuation function. An \emph{expertise frame} is a pair
+    $F = (X, P)$.  The class of all models is denoted by $\M$.
+
+\end{definition}
+
+The sets in $P$ are termed \emph{expertise sets}, and represent the
+propositions on which the source has expertise. Given the earlier informal
+description of expertise as refutation, we interpret $A \in P$ as saying
+that whenever the ``actual" state is outside $A$, the source knows so.
+
+For an expertise model $M = (X, P, V)$, the satisfaction relation between
+states $x \in X$ and formulas $\phi \in \cL$ is defined recursively
+as follows:
+\[
+    \begin{array}{lll}
+     M, x &\models p &\iff x \in V(p) \\
+     M, x &\models \phi \land \psi &\iff M, x \models \phi \text{ and } M, x
+         \models \psi \\
+     M, x &\models \neg\phi &\iff M, x \not\models \phi \\
+     M, x &\models \E\phi &\iff \|\phi\|_M \in P \\
+     M, x &\models \S\phi &\iff \forall A \in P: \|\phi\|_M \subseteq A \implies
+         x \in A \\
+     M, x &\models \A\phi &\iff \forall y \in X: M, y \models \phi
+    \end{array}
+\]
+where $\|\phi\|_M = \{x \in X \mid M, x \models \phi\}$ is the truth set
+of $\phi$. For an expertise frame $F = (X, P)$, write $F
+\models \phi$ iff $M, x \models \phi$ for all models $M$ based on
+$F$ and all $x \in X$. Write $M \models \phi$ iff
+$M, x \models \phi$ for all $x \in X$, and $\models \phi$ iff
+$M \models \phi$ for all models $M$; we say $\phi$ is \emph{valid}
+in this case. Write $\phi \equiv \psi$ iff $\phi \liff \psi$ is
+valid. For a set $\Gamma \subseteq \cL$, write $\Gamma \models
+\phi$ iff for all models $M$ and states $x$, if $M, x \models
+\psi$ for all $\psi \in \Gamma$ then $M, x \models \phi$.
+
+The clauses for atomic propositions and propositional
+connectives are standard. For expertise formulas, we have that $\E\phi$
+holds exactly when the set of states where $\phi$ is true is an element
+of $P$. Expertise is thus a special case of the \emph{neighbourhood semantics}
+\citep{pacuit2017neighborhood}, where each point $x \in X$ has the same
+set of neighbourhoods. The clause for soundness reflects the intuition that
+$\phi$ is sound exactly when all logically weaker formulas on which the
+source has expertise must be true: if $A \in P$ (i.e. the source has
+expertise on $A$) and $A$ contains all $\phi$ states, then
+$x \in A$. In terms of refutation, $\S\phi$ holds iff there is no
+expertise set $A$, false at the actual state $x$, which allows the
+source rule out $\phi$.
+
+Our truth conditions for expertise and soundness also have topological
+interpretations, if one views $P$ as the collection of closed sets of a
+topology on $X$:\footnote{For this to be the case, $P$ must be closed under
+intersections and finite unions, and contain both the empty set and $X$ itself.
+We will turn to these closure properties in \cref{sec_closure_properties}.} $\E\phi$ holds
+iff $\|\phi\|_M$ is closed, and $\S\phi$ holds at $x$ iff $x$ lies in the
+\emph{closure} of $\|\phi\|_M$.\footnotemark{} In this case we can view the
+closure operation as \emph{expanding} the set $\|\phi\|_M$ along the lines of
+the source's expertise; $\phi$ is sound if the ``actual" state $x$ is included
+in this expansion.
+%
+Finally, the clause for the universal modality $\A$ states that $\A\phi$ holds
+iff $\phi$ holds at all states $y \in X$.
+
+\footnotetext{
+    Our semantics for soundness is therefore dual to the \emph{interior
+    semantics} for modal logic, where $\Box\phi$ is true at $x$ iff $x$ lies
+    in the interior of $\|\phi\|$.
+}
+
+\def\w{1}
+\def\h{0.4}
+\newcommand{\examplemodel}{
+    \tikzset{mynode/.style={color=black}}
+    \node[mynode] (a) at (0, 0) {$ipd$};
+    \node[mynode] (b) at (\w, 0) {$pd$};
+    \node[mynode] (c) at (0, \h) {$ip$};
+    \node[mynode] (d) at (\w, \h) {$p$};
+    \node[mynode] (e) at (0, 2*\h) {$id$};
+    \node[mynode] (f) at (\w, 2*\h) {$d$};
+    \node[mynode] (g) at (0, 3*\h) {$i$};
+    \node[mynode] (h) at (\w, 3*\h) {$\emptyset$};
+}
+
+\begin{example}
+    \label{ex_economist_formalisation}
+
+    To formalise \cref{ex_economist_motivation}, consider the model $M = (X, P,
+    V)$ shown in \cref{fig_economist_example}, where $X =
+    2^{\{i,p,d\}}$, $P = \{\emptyset, X, \{ipd,pd,ip,p\},
+    \{id,d,i,\emptyset\}\}$ (indicated by the solid rectangles), and $V(q) =
+    \{S \mid q \in S\}$. Then we have $M \models \E p$ but $M \not\models \E
+    d$. The economist's report of $p \land \neg d$ is represented by the dashed
+    region. We see that while $M, ipd \not\models p \land \neg d$, all
+    expertise sets containing the dashed region also contain $ipd$, so $M, ipd
+    \models \S(p \land \neg d)$. That is, the economist's report is false but
+    sound if the ``actual" state of the world were $ipd$. This act of
+    ``expanding" $\|p \land \neg d\|$ until we reach an expertise set
+    corresponds to ignoring the parts of the report on which the economist has
+    no expertise, as in \cref{ex_economist_motivation}.
+
+\end{example}
+
+\begin{figure}
+    \centering
+    \begin{tikzpicture}[scale=1.9]
+        \def\px{0.4}
+        \def\py{0.2}
+        \def\s{0.8}
+
+        % economist's expertise sets
+        \tikzset{expertiseset/.style={
+            rounded corners,draw=red,thick
+        }}
+        \draw[expertiseset]
+            (-\px, -\py*\s) -- (\w + \px, -\py*\s) -- (\w + \px, \h + \py*\s)
+            -- (-\px, \h + \py*\s) -- cycle;
+        \draw[expertiseset]
+            (-\px, 2*\h -\py*\s) -- (\w + \px, 2*\h -\py*\s) -- (\w + \px, 3*\h + \py*\s)
+            -- (-\px, 3*\h + \py*\s) -- cycle;
+        \node[color=red,opacity=0.7,anchor=east] at (-\px, 0.5*\h) {$\|p\|$};
+        \node[color=red,opacity=0.7,anchor=east] at (-\px, 2.5*\h) {$\|\neg p\|$};
+
+        % e ∧ ¬d
+        \def\r{0.7}
+        \draw[rounded corners,draw=blue,thick,dashed]
+            (-\px*\r, \h + -\py*\s*\r) -- (\w + \px*\r, \h + -\py*\s*\r) --
+            (\w + \px*\r, \h + \py*\s*\r) -- (-\px*\r, \h + \py*\s*\r) -- cycle;
+        \node[color=blue,opacity=0.7,anchor=west] at (\w + \px, \h) {$\|p \land \neg d\|$};
+
+        \examplemodel{}
+
+    \end{tikzpicture}
+    \caption{
+        Expertise model from \cref{ex_economist_formalisation}, which
+        formalises the situation described in \cref{ex_economist_motivation}.
+        Note that $\emptyset, X \in P$, but for clarity this is not indicated
+        in the diagram.
+    }
+    \label{fig_economist_example}
+\end{figure}
+
+We further illustrate the semantics by listing some valid formulas.
+
+\begin{proposition}
+\label{prop_validities}
+
+    The following formulas are valid:
+
+    \begin{enumerate}\small
+        \item\label{item_truths_sound} $\phi \limplies \S\phi$
+
+        \item\label{item_e_global} $\E\phi \liff \A\E\phi$
+
+        \item\label{item_weakening} $\A(\phi \limplies \psi) \limplies (\S\phi
+        \land \E\psi \limplies \psi)$
+
+        \item\label{item_e_and_s} $\E\phi \limplies \A(\S\phi \limplies \phi)$
+
+    \end{enumerate}
+\end{proposition}
+
+\begin{proof}
+
+    Let $M = (X, P, V)$ be a model and $x \in X$. \refitem{item_truths_sound} and
+    \refitem{item_e_global} are clear. For \refitem{item_weakening}, suppose $M, x
+    \models \A(\phi \limplies \psi)$. Then $\|\phi\|_M \subseteq \|\psi\|_M$.
+    Further, suppose $M, x \models \S\phi \land \E\psi$. Then $\|\phi\|_M
+    \subseteq \|\psi\|_M \in P$; taking $A = \|\psi\|_M$ in the definition of
+    the semantics for $\S$, we get by $M, x \models \S\phi$ that $x \in
+    \|\psi\|_M$, i.e. $M, x \models \psi$. Finally, \refitem{item_e_and_s}
+    follows from \refitem{item_e_global} and \refitem{item_weakening} by taking
+    $\psi = \phi$.
+
+\end{proof}
+
+Here \refitem{item_truths_sound} says that all truths are sound.
+\refitem{item_e_global} says that expertise is global. \refitem{item_weakening} says
+that if the source has expertise on $\psi$, and $\psi$ is logically weaker than
+some sound formula $\phi$, then $\psi$ is in fact true. This formalises the
+idea that if $\phi$ is true \emph{up to lack of expertise}, then weakening
+$\phi$ until expertise holds (i.e. discarding parts of $\phi$ on which the
+source does not have expertise) results in something true. \refitem{item_e_and_s}
+says that if the source has expertise on $\phi$, then whenever $\phi$ is sound
+it is also true.
+
+\section{Closure Properties}
+\label{sec_closure_properties}
+
+So far we have not imposed any constraints on the collection of expertise sets
+$P$. But given our interpretation of $P$, it may be natural to
+require that $P$ is closed under certain set-theoretic operations. Say
+a frame $F = (X, P)$ is
+
+\begin{itemize}
+
+    \item \emph{closed under intersections} if $\{A_i\}_{i \in I} \subseteq P$
+          implies $\bigcap_{i \in I}{A_i} \in P$
+
+    \item \emph{closed under unions} if $\{A_i\}_{i \in I} \subseteq P$ implies
+          $\bigcup_{i \in I}{A_i} \in P$
+
+    \item \emph{closed under finite unions} if $A, B \in P$ implies $A \cup B
+          \in P$
+
+    \item \emph{closed under complements} if $A \in P$ implies $X \setminus A
+          \in P$
+
+\end{itemize}
+
+In the first two cases we allow the empty collection $\emptyset \subseteq P$,
+and employ the nullary intersection convention $\bigcap \emptyset = X$.
+Consequently, closure under intersections implies $X \in P$, and closure under
+unions implies $\emptyset \in P$.
+
+Say a model has any of the above properties if the underlying frame does. Write
+$\Mint$, $\Munions$, $\Munions$, $\Mfunions$ and $\Mcompl$ for the classes
+of models closed under intersections, unions, finite unions and complements
+respectively.
+
+What are the intuitive interpretations of these closure conditions? Consider
+again our interpretation of $A \in P$: whenever the actual state is not in $A$,
+the source knows so. With this in mind, closure under intersections is a
+natural property: if $x \notin \bigcap_{i \in I}{A_i}$ then there is some $i
+\in I$ such that $x \notin A_i$; the source can then use this to refute $A_i$
+and therefore know that the actual state $x$ does not lie in the intersection
+$\bigcap_{i \in I}{A_i}$. A similar argument can be made for finite unions: if
+$x \notin A \cup B$ then the source can use $x \notin A$ and $x \notin B$ to
+refute both $A$ and $B$. Closure under \emph{arbitrary} unions is less clear
+cut; determining that $x \notin \bigcup_{i \in I}{A_i}$ requires the source to
+refute (potentially) infinitely many propositions $A_i$.  This is more
+demanding from a computational and cognitive perspective, and we therefore view
+closure under (arbitrary) unions as an optional property which may or may not
+be appropriate depending on the situation one wishes to model. Finally,
+closure under complements removes the distinction between refutation and
+\emph{verification}: if the agent can refute $A$ whenever $A$ is false, they
+can also verify $A$ whenever $A$ is true. We view this as another optional
+property, which is appropriate in situations where \emph{symmetric} expertise
+is desirable (i.e. when expertise on $\phi$ and $\neg\phi$ should be considered
+equivalent).
+
+Several of these properties can be formally captured in our language at the
+level of frames.
+
+\begin{proposition}
+\label{prop_frame_conditions}
+
+    Let $F = (X, P)$ be a non-empty frame. Then
+
+    \begin{enumerate}\small
+
+        \item\label{item_frame_condition_intersections} $F$ is closed under
+            intersections iff $F \models \A(\S\phi \limplies \phi) \limplies
+            \E\phi$ for all $\phi \in \cL$
+
+        \item\label{item_frame_condition_finunions} $F$ is closed under finite
+            unions iff $F \models \E\phi \land \E\psi \limplies \E(\phi \lor
+            \psi)$ for all $\phi \in \cL$
+
+        \item\label{item_frame_condition_compl} $F$ is closed under complements
+            iff $F \models \E\phi \liff \E\neg\phi$ for all $\phi \in \cL$
+
+    \end{enumerate}
+\end{proposition}
+
+\begin{proof}
+
+    We prove only the first claim; the others are straightforward.
+
+    ``if": We show the contrapositive. Suppose $F$ is not closed under
+    intersections. Then there is a collection $\{A_i\}_{i \in I} \subseteq P$
+    such that $B := \bigcap_{i \in I}A_i \notin P$. Let $p$ be an arbitrary
+    atomic proposition, and define a valuation $V$ by $V(p) = B$ and $V(q) =
+    \emptyset$ for $q \ne p$. Let $M = (X, P, V)$ be the corresponding model.
+    Since $X$ is assumed to be non-empty, we may take some $x \in X$.
+
+    We claim that $M, x \models \A(\S p \limplies p)$ but $M, x
+    \not\models \E p$. Clearly $M, x \not\models \E p$ since
+    $\|p\|_M = B \notin P$. For $M, x \models \A(\S p \limplies
+    p)$, suppose $y \in X$ and $M, y \models \S p$. Let $j
+    \in I$. Then $A_j \in P$, and
+    \[
+        \|p\|_M
+        = B
+        = \bigcap_{i \in I}{A_i}
+        \subseteq A_j
+    \]
+    so by $M, y \models \S p$ we have $y \in A_j$. Hence $y
+    \in \bigcap_{j \in I}A_j = B = \|p\|_M$, so $M, y \models p$. This
+    shows that any $y \in X$ has $M, y \models \S p \limplies p$,
+    and thus $M, x \models \A(\S p \limplies p)$. Hence $F
+    \not\models \A(\S p \limplies p) \limplies \E p$.
+
+    ``only if": Suppose $F$ is closed under intersections. Let $M$
+    be a model based on $F$ and take $x \in X$. Let $\phi
+    \in \cL$. Suppose $M, x \models \A(\S\phi \limplies \phi)$. Then
+    $\|\S\phi\|_M \subseteq \|\phi\|_M$. But since $\models \phi
+    \limplies \S\phi$, we have $\|\phi\|_M \subseteq \|\S\phi\|_M$ too.
+    Hence $\|\phi\|_M = \|\S\phi\|_M$, i.e.
+    \[
+        \|\phi\|_M
+        = \|\S\phi\|_M
+        = \bigcap\{A \in P \mid \|\phi\|_M \subseteq A\}
+        \in P
+    \]
+    where we use the fact that $P$ is closed under intersections in the
+    final step. Hence $\|\phi\|_M \in P$, so $M, x \models
+    \E\phi$.
+
+\end{proof}
+
+The question of whether closure under (arbitrary) unions can be expressed in
+the language is still open. By \cref{prop_frame_conditions}
+\refitem{item_frame_condition_intersections} and \cref{prop_validities}
+\refitem{item_e_and_s}, the language fragment $\cLSA$ containing only the $\S$
+and $\A$ modalities is equally expressive as the full language $\cL$ with
+respect to $\Mint$, since $\E\phi$ is equivalent to $\A(\S\phi \limplies \phi)$
+in such models. In general $\cLSA$ is strictly less expressive, since $\cLSA$
+cannot distinguish between a model and its closure under intersections.
+
+\begin{lemma}
+\label{lemma_lsa_intersections}
+
+    Let $M = (X, P, V)$ be a model, and $M' = (X, P', V)$ its closure under
+    intersections, where $A \in P'$ iff $A = \bigcap_{i \in I}{A_i}$ for some
+    $\{A_i\}_{i \in I} \subseteq P$. Then for all $\phi \in \cLSA$ and $x \in
+    X$, we have $M, x \models \phi$ iff $M', x \models \phi$.
+
+\end{lemma}
+
+\begin{proof}
+
+    By induction on $\cLSA$ formulas. The cases for atomic
+    propositions, propositional connectives and $\A$ are straightforward. We
+    treat only the case for $\S$.
+    %
+    The ``if" direction is clear using
+    the induction hypothesis and the fact that $P \subseteq P'$. Suppose $M, x
+    \models \S\phi$. Take $A = \bigcap_{i \in I}{A_i} \in P'$, where each $A_i$
+    is in $P$, such that $\|\phi\|_{M'} \subseteq A$. By the induction
+    hypothesis, $\|\phi\|_M \subseteq A$. For any $i \in I$, $\|\phi\|_M
+    \subseteq A \subseteq A_i$ and $M, x \models \S\phi$ gives $x \in A_i$.
+    Hence $x \in \bigcap_{i \in I}{A_i} = A$. This shows $M', x \models
+    \S\phi$.
+
+\end{proof}
+
+It follows that $\cLSA$ is strictly less expressive than $\cL$.\footnote{
+    Indeed, consider $M = (X, P, V)$, where $X = \{1, 2, 3\}$, $P = \{\{1, 2\}, \{2,
+    3\}\}$ and $V(p) = \{1, 2\}$, $V(q) = \{2, 3\}$ for some fixed $p, q \in
+    \Prop$. Let $M'$ be as in \cref{lemma_lsa_intersections}. Then $M', 1
+    \models \E(p \land q)$ and $M, 1 \not\models \E(p \land q)$, but $M$ and
+    $M'$ agree on $\cLSA$ formulas. Hence $\E(p \land q)$ is not equivalent to
+    any $\cLSA$ formula.
+}
+%
+To round off the discussion of closure properties, we note that within the
+class of frames closed under intersections, closure under finite unions is also
+captured by the well-known \textbf{K} axiom -- $\Box(\phi \limplies \psi)
+\limplies (\Box\phi \limplies \Box\psi)$ -- for the dual soundness operator
+$\hat{\S}\phi := \neg\S\neg\phi$:
+
+\begin{proposition}
+\label{prop_finite_unions_frame_condition}
+
+    Suppose $F = (X, P)$ is non-empty and closed under intersections. Then $F$
+    is closed under finite unions if and only if $F \models \hat{\S}(\phi
+    \limplies \psi) \limplies (\hat{\S}\phi \limplies \hat{\S}\psi)$ for all
+    $\phi, \psi \in \cL$.
+
+\begin{proof}
+
+    ``if": We show the contrapositive. Suppose $F$ is closed under
+    intersections but not finite unions, so that there are $B_1, B_2
+    \in P$ with $B_1 \cup B_2 \notin P$. Set
+    \[
+    C = \bigcap\{A \in P \mid B_1 \cup B_2 \subseteq A\}\]
+    By closure under intersections, $C \in P$. Clearly $B_1 \cup
+    B_2 \subseteq C$. Since $C \in P$ but $B_1 \cup B_2 \notin
+    P$, $B_1 \cup B_2 \subset C$. Hence there is $x \in C
+    \setminus (B_1 \cup B_2)$.
+
+    Now pick distinct atomic propositions $p$ and $q$, and let $V$ be any
+    valuation with $V(p) = B_1 \cup B_2$ and $V(q) = B_1$. Let $M = (X, P, V)$
+    be the corresponding model. We make three claims:
+
+    \begin{itemize}\small
+
+        \item $M, x \models \S p$: Take $A \in P$ such that $\|p\|_M \subseteq
+              A$. Then $B_1 \cup B_2 \subseteq A$, so $C \subseteq A$. Since $x
+              \in C$, we have $x \in A$ as required.
+
+        \item $M, x \not\models \S q$: This is clear since $B_1 \in P$,
+              $\|q\|_M \subseteq B_1$, but $x \notin B_1$.
+
+        \item $M, x \not\models \S (p \land \neg q)$: Note that $\|p \land \neg
+              q\|_M = V(p) \setminus V(q) = B_2 \setminus B_1$. Therefore we
+              have $B_2 \in P$ and $\|p \land \neg q\|_M \subseteq B_2$, but $x
+              \notin B_2$.
+
+    \end{itemize}
+
+    Now set $\phi = \neg q$ and $\psi = \neg p$. We have
+    \[
+       \hat{\S}(\phi \limplies \psi)
+       = \neg\S\neg(\phi \limplies \psi)
+       \equiv \neg\S(\phi \land \neg\psi)
+       \equiv \neg\S(p \land \neg q)
+    \]
+    \[
+       \hat{\S}\phi \limplies \hat{\S}\psi
+       = \neg\S\neg\phi \limplies \neg\S\neg\psi
+       \equiv \neg\S q \limplies \neg\S p
+       \equiv \S p \limplies \S q
+    \]
+    From the claims above we see that $M, x \models \hat{\S}(\phi
+    \limplies \psi)$ but $M, x \not\models \hat{\S}\phi \limplies
+    \hat{\S}\psi$. Since $M$ is a model based on $F$, we are
+    done.
+
+    ``only if": Suppose $F$ is closed under intersections and finite
+    unions. Let $M$ be a model based on $F$ and $x$ a state
+    in $M$. Suppose $M, x \models \hat\S(\phi \limplies \psi)$
+    and $M, x \models \hat\S\phi$. Then $M, x \not\models
+    \S\neg(\phi \limplies \psi)$ and $M, x \not\models \S\neg\phi$.
+    Hence there is $A \in P$ such that $\|\neg(\phi \limplies
+    \psi)\|_M \subseteq A$ but $x \notin A$, and $B \in P$ such
+    that $\|\neg\phi\|_M \subseteq B$ but $x \notin B$. Note
+    \[
+        \|\neg\psi\|_M
+        \subseteq \|\phi \land \neg\psi\|_M \cup \|\neg\phi\|_M
+        = \|\neg(\phi \limplies \psi)\|_M \cup \|\neg\phi\|_M
+        \subseteq A \cup B.
+    \]
+    Since $x \notin A \cup B$ and $A \cup B \in P$ by closure
+    under finite unions, this shows $M, x \not\models \S\neg\psi$, i.e.
+    $M, x \models \hat\S\psi$. This completes the proof of $F
+    \models \hat{\S}(\phi \limplies \psi) \limplies (\hat{\S}\phi \limplies
+    \hat{\S}\psi)$.
+
+\end{proof}
+\end{proposition}
+
+\section{Connection with Epistemic Logic}
+\label{sec_connection_with_ep_logic}
+
+In this section we explore the connection between our logic and \emph{epistemic
+logic}, for certain classes of expertise models. In particular, we show a
+one-to-one mapping between classes of expertise models and \emph{S4 and S5
+relational models}, and a translation from $\cL$ to the modal language with
+knowledge operator $\K$ which allows expertise and soundness to be expressed in
+terms of \emph{knowledge}.
+
+First, we introduce the syntax and (relational) semantics of epistemic logic.
+Let $\cLKA$ be the language formed from $\Prop$ with modal operators $\K$ and
+$\A$. We read $\K\phi$ as \emph{the source knows} $\phi$.
+
+\begin{definition}
+\label{def_relational_models}
+
+    A \emph{relational model} is a triple $M^* = (X, R, V)$, where $X$ is a set
+    of states, $R \subseteq X \times X$ is a binary relation on $X$, and $V:
+    \Prop \to 2^X$ is a valuation function. The class of all relational models
+    is denoted by $\Mrel$.
+
+\end{definition}
+
+The satisfaction relation for $\cLKA$ is defined recursively: the clauses
+for atomic propositions, propositional connectives and $\A$ are the same
+as for expertise models, and
+\[
+    M^*, x \models \K\phi
+    \iff
+    \forall y \in X: xRy \implies M^*, y \models \phi.
+\]
+As is standard, $R$ is interpreted as an \emph{epistemic accessibility relation}:
+$xRy$ means that the sources considers $y$ possible if the ``actual"
+state of the world is $x$. We will be interested in the logics of S4 and
+S5, which are axiomatised by \textbf{KT4} and \textbf{KT5}, respectively:
+
+\begin{itemize}
+    \item \textbf{K}: $\K(\phi \limplies \psi) \limplies (\K\phi \limplies
+          \K\psi)$
+
+    \item \textbf{T}: $\K\phi \limplies \phi$
+
+    \item \textbf{4}: $\K\phi \limplies \K\K\phi$
+
+    \item \textbf{5}: $\neg\K\phi \limplies \K\neg\K\phi$
+
+\end{itemize}
+
+\textbf{T} says that all knowledge is true, \textbf{4} expresses \emph{positive
+introspection} of knowledge, and \textbf{5} expresses \emph{negative
+introspection}.
+
+It is well known that S4 is sound and complete for the class of relational
+models where $R$ is reflexive and transitive, and that S5 is sound and complete
+for the class of relational models where $R$ is an equivalence relation.
+Accordingly, we write $\Msfour$ for the class of all $M^*$ where $R$ is
+reflexive and transitive, and $\Msfive$ for $M^*$ where $R$ is an equivalence
+relation.
+
+Our first result connecting expertise and knowledge is on the semantic side: we
+show there is a bijection between expertise models closed under intersections
+and unions and S4 models. Moreover, there is a close connection between the
+collection of expertise sets $P$ and the corresponding relation $R$.
+Since expertise models closed under intersections and unions
+are \emph{Alexandrov topological spaces} (where $P$ is the set of closed sets),
+this is essentially a reformulation of a known result linking relational
+semantics over S4 frames and topological interior semantics over Alexandrov
+spaces~\citep{van2007modal,ozgun_evidence}.\footnotemark{} To be self-contained,
+we prove it for our setting here. First, we show how to map a collection of
+sets $P$ to a binary relation.
+
+\footnotetext{
+    In fact, the interior semantics has an intrinsic epistemic interpretation
+    (without appeal to any link with relational semantics) if one views
+    open sets as \emph{evidence}~\citep[pp. 24]{ozgun_evidence}.
+}
+
+\begin{definition}
+\label{def_rp}
+
+    For a set $X$ and $P \subseteq 2^X$, let $R_P$ be the binary relation on
+    $X$ given by
+    \[
+        x{R_P}y \iff \forall A \in P: y \in A \implies x \in A
+    \]
+\end{definition}
+
+\begin{figure}[h]
+    \centering
+    \begin{minipage}{50pt}
+        \begin{tikzpicture}[scale=1.9]
+            \examplemodel{}
+            % economist's accessibility relation
+            \tikzset{symmacc/.style={<->,thick,draw=red}}
+            \def\b{15}
+            \draw[symmacc] (a) edge[bend right=\b] (b);
+            \draw[symmacc] (a) -- (c);
+            \draw[symmacc] (a) -- (d);
+            \draw[symmacc] (b) -- (c);
+            \draw[symmacc] (b) -- (d);
+            \draw[symmacc] (c) edge[bend left=\b] (d);
+
+            \draw[symmacc] (e) edge[bend right=\b] (f);
+            \draw[symmacc] (e) -- (g);
+            \draw[symmacc] (e) -- (h);
+            \draw[symmacc] (f) -- (g);
+            \draw[symmacc] (f) -- (h);
+            \draw[symmacc] (g) edge[bend left=\b] (h);
+        \end{tikzpicture}
+    \end{minipage}
+    \hspace{50pt}
+    \begin{minipage}{50pt}
+        \begin{tikzpicture}[scale=1.9]
+            \examplemodel{}
+            % non-symmetric accessibility relation
+            \tikzset{acc/.style={->,thick,draw=blue}}
+            \def\b{15}
+            \draw[acc] (c) -- (a);
+            \draw[acc] (e) edge[bend right=30] (a);
+            \draw[acc] (e) -- (c);
+
+            \draw[acc] (h) -- (g);
+            \draw[acc] (h) -- (f);
+
+            \draw[acc] (b) -- (d);
+            \draw[acc] (d) -- (b);
+
+        \end{tikzpicture}
+    \end{minipage}
+    \caption{
+        Left: the relation $R_P$ corresponding to $X$ and $P$ from
+        \cref{ex_economist_formalisation} (with reflexive edges omitted). Note
+        that $R_P$ is an equivalence relation, with equivalence classes $\|p\|$
+        and $\|\neg p\|$. Right: an example of a non-symmetric relation $R_P$,
+        corresponding to $P = \{
+            \emptyset,
+            X,
+            \{id,ip,ipd\},
+            \{id,ip\},
+            \{id\},
+            \{i,\emptyset\},
+            \{\emptyset,d\},
+            \{p,pd\}
+        \}$.
+    }
+    \label{fig_rp_example}
+\end{figure}
+
+In the case where $P$ is the collection of closed sets of a topology on $X$,
+$R_P$ is the \emph{specialisation preorder}.
+%
+\Cref{fig_rp_example} shows an example of $R_P$ for $X$ and $P$ from
+\cref{ex_economist_formalisation}.
+%
+In what follows, say a set $A \subseteq X$ is \emph{downwards closed} with
+respect to a relation $R$ if $xRy$ and $y \in A$ implies $x \in A$.
+
+\begin{lemma}
+\label{lemma_same_dc_sets_implies_equality}
+    Let $X$ be a set and $R, S$ reflexive and transitive relations on $X$. Then
+    if $R$ and $S$ share the same downwards closed sets, $R = S$.
+\end{lemma}
+\begin{proof}
+    Suppose $xRy$. Set $A = \{z \in X \mid zSy\}$. By transitivity of $S$, $A$
+    is downwards closed wrt $S$.  By assumption, $A$ must also be downwards
+    closed wrt $R$. By reflexivity of $S$, $y \in A$. Hence $xRy$ implies $x
+    \in A$, i.e. $xSy$. This shows $R \subseteq S$, and the reverse inclusion
+    holds by a symmetrical argument. Hence $R = S$.
+\end{proof}
+
+\begin{lemma}
+\label{lemma_p_to_rp_mapping}
+    Let $X$ be a set.
+
+    \begin{enumerate}\small
+        \item\label{item_rp_ref_and_tr} For any $P \subseteq 2^X$, $R_P$ is
+            reflexive and transitive.
+
+        \item\label{item_rp_dc_property} If $P \subseteq 2^X$ is closed under
+             unions and intersections, then for all $A \subseteq X$:
+            \[
+                A \in P \iff A \text{ is downwards closed wrt } R_P.
+            \]
+
+        \item\label{item_rp_surjectivity} If $R$ is a reflexive and transitive
+            relation on $X$, there is $P \subseteq 2^X$ closed under unions and
+            intersections such that $R_P = R$.
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}\leavevmode
+    \begin{enumerate}\small
+        % \item Reflexivity is clear. For transitivity, suppose $x{R_P}y$ and
+        %       $y{R_P}z$. Take $A \in P$ such that $z \in A$. Then $y{R_P}z$
+        %       gives $y \in A$. But then $x{R_P}y$ gives $x \in A$. Hence
+        %       $x{R_P}z$.
+        \item Straightforward by the definition of $R_P$.
+
+        \item Suppose $P$ is closed under unions and intersections and let $A
+              \subseteq X$.  First suppose $A \in P$. Then $A$ is downwards
+              closed with respect to $R_P$: if $y \in A$ and $x{R_P}y$ then, by
+              definition of $R_P$, we have $x \in A$.
+
+              Next suppose $A$ is downwards closed with respect to $R_P$. We
+              claim \[ A = \bigcup_{y \in A}\bigcap\{B \in P \mid y \in B\} \]
+              Since $P$ is closed under intersections and unions, this will
+              show $A \in P$. The left-to-right inclusion is clear, since any
+              $y \in A$ lies in the term of the union corresponding to $y$. For
+              the right-to-left inclusion, take any $x$ in the set on the RHS.
+              Then there is $y \in A$ such that $x \in \bigcap\{B \in P \mid y
+              \in B\}$. But this is just a rephrasing of $x{R_P}y$. Since $A$
+              is downwards closed, we get $x \in A$ as required.
+
+        \item Take any reflexive and transitive relation $R$. Set
+              \[
+                  P
+                  =
+                  \{A \subseteq X \mid A \text{ is downwards closed wrt } R\}.
+                \]
+              It is easily seen that $P$ is closed under unions and
+              intersections. We need to show that $R_P = R$.
+              %
+              By \refitem{item_rp_ref_and_tr}, $R_P$ is reflexive and
+              transitive.  By \cref{lemma_same_dc_sets_implies_equality}, it is
+              sufficient to show that $R_P$ and $R$ share the same downwards
+              closed sets.  Indeed, for any $A \subseteq X$ we get by
+              \refitem{item_rp_dc_property} and the definition of $P$ that
+              \[
+              \begin{aligned}
+                  A \text{ is downwards closed wrt } R_P
+                  &\iff A \in P \\
+                  &\iff A \text{ is downwards closed wrt } R.
+              \end{aligned}
+              \]
+              %Hence $R = R_P$.
+
+    \end{enumerate}
+\end{proof}
+
+We can now state the correspondence between expertise models and S4 relational
+models.
+
+\begin{theorem}
+\label{thm_s4_semantic_link}
+
+    The mapping $f: \Mint \cap \Munions \to \Msfour$ given by $(X, P, V)
+    \mapsto (X, R_P, V)$ is bijective.
+\end{theorem}
+
+\begin{proof}
+
+    \cref{lemma_p_to_rp_mapping} \refitem{item_rp_ref_and_tr} shows that $f$ is
+    well-defined, i.e. that $f(M)$ does indeed lie in $\Msfour$ for any
+    expertise model $M$. Injectivity follows from \cref{lemma_p_to_rp_mapping}
+    \refitem{item_rp_dc_property}, since $P$ is fully determined by $R_P$ for
+    expertise models closed under unions and intersections. Finally,
+    \cref{lemma_p_to_rp_mapping} \refitem{item_rp_surjectivity} shows that $f$
+    is surjective.
+
+\end{proof}
+
+If we consider closure under complements together with intersections, an
+analogous result holds with S5 taking the place of S4.
+
+\begin{theorem}
+\label{thm_s5_semantic_link}
+
+    The mapping $g: \Mint \cap \Mcompl \to \Msfive$ given by $(X, P, V)
+    \mapsto (X, R_P, V)$ is bijective.
+\end{theorem}
+
+\begin{proof}
+    First, note that $\Mint \cap \Mcompl \subseteq \Mint \cap
+    \Munions$, since any union of sets in $P$ can be written as a
+    complement of intersection of complements of sets in $P$. Therefore
+    $g$ is simply the restriction of $f$ from
+    \cref{thm_s4_semantic_link} to $\Mint \cap \Mcompl$.
+
+    To show $g$ is well-defined, we need to show that $R_P$ is an equivalence
+    relation whenever $P$ is closed under intersections and complements.
+    Reflexivity and transitivity were already shown in
+    \cref{lemma_p_to_rp_mapping} \refitem{item_rp_ref_and_tr}. We show $R_P$ is
+    symmetric.  Suppose $x{R_P}y$. Let $A \in P$ such that $x \in A$.  Write $B
+    = X \setminus A$. Then since $P$ is closed under complements, $B \in P$.
+    Since $x{R_P}y$ and $x \notin B$, we cannot have $y \in B$. Thus $y \notin
+    B = X \setminus A$, i.e. $y \in A$. This shows $y{R_P}x$. Hence $R_P$ is an
+    equivalence relation.
+
+    Injectivity of $g$ is inherited from injectivity of $f$ from
+    \cref{thm_s4_semantic_link}. For surjectivity, it suffices to show that
+    $f^{-1}(M^*)$ is closed under complements when $M^* = (X, R, V) \in
+    \Msfive$. Recall, from \cref{lemma_p_to_rp_mapping}
+    \refitem{item_rp_surjectivity}, that $f^{-1}(M^*) = (X, P, V)$, where $A
+    \in P$ iff $A$ is downwards closed with respect to $R$. Suppose $A \in P$,
+    i.e. $A$ is downwards closed. To show $X \setminus A$ is downwards closed,
+    suppose $y \in X \setminus A$ and $xRy$.  By symmetry of $R$, $yRx$. If $x
+    \in A$, then downwards closure of $A$ would give $y \in A$, but this is
+    false. Hence $x \notin A$, i.e. $x \in X \setminus A$. Thus $X \setminus A$
+    is downwards closed, so $P$ is closed under complements. This completes the
+    proof.
+\end{proof}
+
+The mappings between expertise models and relational models also preserve the
+truth value of formulas, via the following translation $t: \cL \to
+\cLKA$, which expresses expertise and soundness in terms of knowledge:
+\[
+\begin{array}{lll}
+ &t(p) &= p \\
+ &t(\phi \land \psi) &= t(\phi) \land t(\psi) \\
+ &t(\neg\phi) &= \neg t(\phi) \\
+ &t(\E\phi) &= \A(\neg t(\phi) \limplies \K\neg t(\phi)) \\
+ &t(\S\phi) &= \neg\K\neg t(\phi) \\
+ &t(\A\phi) &= \A t(\phi).
+\end{array}
+\]
+The only interesting cases are for $\E\phi$ and $\S\phi$. The
+translation of $\E\phi$ corresponds directly to the intuition of
+expertise as refutation: in all possible scenarios, if $\phi$ is false
+the source knows so. The translation of $\S\phi$ says that soundness is
+just the dual of knowledge: $\phi$ is sound if the source does not \emph{know}
+that $\phi$ is false.
+
+\begin{theorem}
+\label{thm_s4s5_translation}
+
+    Let $f: \Mint \cap \Munions \to \Msfour$ be the bijection from
+    \cref{thm_s4_semantic_link}. Then for all $M = (X, P, V) \in \Mint
+    \cap \Munions$, $x \in X$ and $\phi \in \cL$:
+    \begin{equation}
+        \label{eqn_s4s5_1}
+        M, x \models \phi \iff f(M), x \models t(\phi)
+    \end{equation}
+    Moreover, if $g: \Mint \cap \Mcompl \to \Msfive$ is the bijection from
+    \cref{thm_s5_semantic_link}, then for all $M = (X, P, V) \in
+    \Mint \cap \Mcompl$:
+    \begin{equation}
+        \label{eqn_s4s5_2}
+        M, x \models \phi \iff g(M), x \models t(\phi)
+    \end{equation}
+\end{theorem}
+
+\begin{proof}
+
+    Note that since $g$ is defined as the restriction of $f$ to $\Mint \cap
+    \Mcompl$, \refeqn{eqn_s4s5_2} follows from \refeqn{eqn_s4s5_1}. We show
+    \refeqn{eqn_s4s5_1} only.
+    %
+    Let $M = (X, P, V) \in \Mint \cap \Munions$. Write $f(M) =
+    (X, R, V)$. From the definition of $f$ and
+    \cref{lemma_p_to_rp_mapping} \refitem{item_rp_dc_property}, we have
+    \[
+        A \in P \iff A \text{ is downwards closed wrt R} \qquad(*)
+    \]
+    We show \refeqn{eqn_s4s5_1} by induction. The only non-trivial cases are
+    $\E$ and $\S$ formulas.
+
+        ($\E$): Suppose $M, x \models \E\phi$. Then $\|\phi\|_M \in P$. By
+              the induction hypothesis and $(*)$, this means
+              $\|t(\phi)\|_{f(M)}$ is downwards closed with respect to $R$. Now
+              take $y \in X$ such that $f(M), y \models \neg t(\phi)$. Then $y
+              \notin \|t(\phi)\|_{f(M)}$. Since this set is downwards closed,
+              it cannot contain any $R$-successor of $y.$ Hence $f(M), y
+              \models \K\neg t(\phi)$. This shows that $f(M), x \models \A(\neg
+              t(\phi) \limplies \K\neg t(\phi))$, i.e. $f(M), x \models
+              t(\E\phi)$.
+
+              Now suppose $f(M), x \models t(\E\phi)$, i.e. $f(M), x \models
+              \A(\neg t(\phi) \limplies \K\neg t(\phi))$. We show $\|\phi\|_M$
+              is downwards closed. Suppose $yRz$ and $z \in \|\phi\|_M$. By the
+              induction hypothesis, $f(M), z \not\models \neg t(\phi)$. Hence
+              $f(M), y \not\models \K\neg t(\phi)$. Since $\neg t(\phi)
+              \limplies \K\neg t(\phi)$ holds everywhere in $f(M)$, this means
+              $f(M), y \models t(\phi)$; by the induction hypothesis again we
+              get $M, y \models \phi$ and thus $y \in \|\phi\|_M$. This shows
+              that $\|\phi\|_M$ is downwards closed, and by $(*)$ we have
+              $\|\phi\|_M \in P$.  Hence $M, x \models \E\phi$.
+
+        ($\S$): We show both directions by contraposition. Suppose $M, x
+              \not\models \S\phi$. Then there is $A \in P$ such that
+              $\|\phi\|_M \subseteq A$ and $x \notin A$. Since $A$ is downwards
+              closed (by $(*)$), this means $xRy$ implies $y \notin A$ and
+              hence $y \notin \|\phi\|_M$, for any $y \in X$. By the induction
+              hypothesis, we get that $xRy$ implies $f(M), y \models \neg
+              t(\phi)$, i.e.  $f(M), x \models \K\neg t(\phi)$. Hence $f(M), x
+              \not\models t(\S\phi)$.
+
+              Finally, suppose $f(M), x \not\models t(\S\phi)$, i.e.  $f(M), x
+              \models \K\neg t(\phi)$. Let $A$ be the $R$-downwards closure of
+              $\|\phi\|_M$, i.e.
+              \[
+                  A = \{y \in X \mid \exists z \in \|\phi\|_M: yRz\}
+              \]
+              Then $\|\phi\|_M \subseteq A$ by reflexivity of $R$, and $A$ is
+              downwards closed by transitivity.  Hence $A \in P$.  But $x
+              \notin A$, since for all $z$ with $xRz$ we have $f(M), z \models
+              \neg t(\phi)$, so $z \notin \|t(\phi)\|_{f(M)} = \|\phi\|_M$.
+              Hence $M, x \not\models \S\phi$.
+\end{proof}
+
+Taken together, the results of this section show that, when considering
+expertise models closed under intersections and unions, $P$ \emph{uniquely determines}
+an epistemic accessibility relation such that expertise and soundness have
+precise interpretations in terms of S4 knowledge. If we also impose closure
+under complements, the notion of knowledge is strengthened to S5. Moreover,
+every S4 and S5 model arises from some expertise model in this way.
+
+\section{Axiomatisation}
+\label{sec_axiomatisation}
+
+In this section we give sound and complete logics with respect to various
+classes of expertise models. We start with the class of all expertise
+models $\M$, and show how adding more axioms captures the closure conditions of
+\cref{sec_closure_properties}.
+
+\paragraph{The General Case}
+
+Let $\sL$ be the extension of propositional logic generated by the axioms and
+inference rules shown in \cref{tab_axioms_general_case}. Note that we treat
+$\A$ as a ``box" and $\S$ as a ``diamond" modality. Some of the axioms were
+already seen in \cref{prop_validities}; new ones include ``replacement of
+equivalents" for expertise $\reE$, \textbf{4} for $\S$ $\foursoundness$,
+and $\weakeningS$, which says that if $\psi$ is logically weaker than $\phi$
+then the same holds for $\S\psi$ and $\S\phi$. First, $\sL$ is sound.
+
+\begin{table}
+    \begin{center}
+        \begin{minipage}{174pt}
+            \caption{Axioms and inference rules for $\sL$.}
+            \label{tab_axioms_general_case}
+            \begin{tabular}{lr}
+                \toprule
+                 $\E\phi \liff \A\E\phi$
+                     & $\EA$ \\
+                 $\A(\phi \liff \psi) \limplies (\E\phi \liff \E\psi)$
+                     & $\reE$ \\
+                 $\A(\phi \limplies \psi) \limplies (S\phi \land E\psi \limplies \psi)$
+                     & $\weakeningE$ \\
+                 \midrule
+                 $\phi \limplies \S\phi$
+                     & $\Tsoundness$ \\
+                 $\S\S\phi \limplies \S\phi$
+                     & $\foursoundness$ \\
+                 $\A(\phi \limplies \psi) \limplies (S\phi \limplies \S\psi)$
+                     & $\weakeningS$ \\
+                 \midrule
+                 $\A(\phi \limplies \psi) \limplies (\A\phi \limplies \A\psi)$
+                     & $\Kuniv$ \\
+                 $\A\phi \limplies \phi$
+                     & $\Tuniv$ \\
+                 $\neg\A\phi \limplies \A\neg\A\phi$
+                     & $\fiveuniv$ \\
+                 \midrule
+                 From $\phi$ infer $\A\phi$
+                     & $\necuniv$ \\
+                 From $\phi \limplies \psi$ and $\phi$ infer $\psi$
+                     & $\modpon$ \\
+                \botrule
+            \end{tabular}
+        \end{minipage}
+    \end{center}
+\end{table}
+
+\begin{lemma}
+\label{lemma_soundness_m}
+    $\sL$ is sound with respect to $\M$.
+\end{lemma}
+
+\begin{proof}
+    The inference rules are clearly sound. All axioms were either shown to be
+    sound in \cref{prop_validities} or are straightforward to see, with the
+    possible exception of $\foursoundness$ which we will show explicitly. Let
+    $M = (X, P, V)$ be an expertise model and $x \in X$. Suppose $M, x \models
+    \S\S\phi$. We need to show $M, x \models \S\phi$. Take $A \in P$ such that
+    $\|\phi\|_M \subseteq A$. Now for any $y \in X$, if $M, y \models \S\phi$
+    then clearly $y \in A$. Hence $\|\S\phi\|_M \subseteq A$. But then $M, x
+    \models \S\S\phi$ gives $x \in A$. Hence $M, x \models \S\phi$.
+\end{proof}
+
+For completeness, we use a variation of the standard canonical model method.
+In taking this approach, one constructs a model whose states are maximally
+$\sL$-consistent sets of formulas, and aims to prove the \emph{truth lemma}:
+that a set $\Gamma$ satisfies $\phi$ in the canonical model if and only if
+$\phi \in \Gamma$. However, the truth lemma poses some difficulties for our
+semantics. Roughly speaking, we find there is an obvious choice of $P$ to
+ensure the truth lemma for $\E\phi$ formulas, but that this may be too small
+for $\S\phi$ to be refuted when $\S\phi \notin \Gamma$ (recall that $M, x
+\not\models \S\phi$ iff \emph{there exists} some $A \in P$ such that
+$\|\phi\|_M \subseteq A$ and $x \notin A$). We therefore ``enlargen" the set of
+states so we can add new expertise sets $A$ -- without affecting the truth
+value of expertise formulas -- to obtain the truth lemma for soundness
+formulas.
+
+First, some standard notation and terminology. Write $\thm \phi$ iff
+$\phi \in \sL$. For $\Gamma \subseteq \cL$ and $\phi \in \cL$, write $\Gamma
+\thm \phi$ iff there are $\psi_0, \ldots, \psi_n \in \Gamma$, $n \ge 0$, such
+that $\thm (\psi_0 \land \cdots \land \psi_n) \limplies \phi$.  Say $\Gamma$
+is \emph{inconsistent} if $\Gamma \entails \bot$, and
+\emph{consistent} otherwise. $\Gamma$ is \emph{maximally
+consistent} iff $\Gamma$ is consistent and $\Gamma \subset \Delta$ implies that
+$\Delta$ is inconsistent. We recall some standard facts about maximally
+consistent sets.
+
+\begin{lemma}
+\label{lemma_mcs_facts}
+    Let $\Gamma$ be a maximally consistent set and $\phi, \psi \in \cL$. Then
+    \begin{enumerate}\small
+        \item\label{item_mcs_mem_entail} $\phi \in \Gamma$ iff $\Gamma \entails
+            \phi$
+
+        \item\label{item_mcs_modpon} If $\phi \limplies \psi \in \Gamma$ and
+            $\phi \in \Gamma$, then $\psi \in \Gamma$
+
+        \item\label{item_mcs_negations} $\neg\phi \in \Gamma$ iff $\phi \notin
+            \Gamma$
+
+        \item\label{item_mcs_conjunctions} $\phi \land \psi \in \Gamma$ iff
+            $\phi \in \Gamma$ and $\psi \in \Gamma$
+    \end{enumerate}
+\end{lemma}
+
+% \begin{proof}\leavevmode
+%     \begin{enumerate}\small
+
+%         \item First suppose $\phi \in \Gamma$. Since $\phi \limplies \phi$ is
+%               an instance of the propositional tautology $p \limplies p$, we
+%               have $\thm \phi \limplies \phi$. Since $\phi \in \Gamma$, this
+%               gives $\Gamma \entails \phi$.
+
+%               Now suppose $\Gamma \entails \phi$. Set $\Delta = \Gamma \cup
+%               \{\phi\}$. We claim $\Delta$ is consistent. If not, there are
+%               $\psi_0,\ldots,\psi_n \in \Delta$ such that $\thm (\psi_0 \land
+%               \cdots \land \psi_n) \limplies \bot$. Since $\Gamma$ is
+%               consistent, at least one of the $\psi_i$ must be equal to $\phi$.
+%               Without loss of generality, $\psi_0 = \phi$ and $\psi_j \in
+%               \Gamma$ for $j > 0$. Hence, by propositional logic and $\modpon$,
+%               $\thm (\psi_1 \land \cdots \land \psi_n) \limplies \neg \phi$.
+%               Thus $\Gamma \entails \neg\phi$.  But since $\Gamma \entails
+%               \phi$ also, it follows that $\Gamma \entails \bot$, and thus
+%               $\Gamma$ is inconsistent: contradiction. So $\Delta$ must be
+%               consistent after all. Clearly $\Gamma \subseteq \Delta$, and by
+%               maximal consistency of $\Gamma$, $\Gamma \not\subset \Delta$.
+%               Hence $\Delta = \Gamma$, so $\phi \in \Gamma$ as required.
+
+%         \item By propositional logic we have $\thm ((\phi \limplies \psi) \land
+%               \phi) \limplies \psi$. Hence $\Gamma \entails \psi$; by
+%               \refitem{item_mcs_mem_entail} we get $\psi \in \Gamma$.
+
+%         \item If $\neg\phi \in \Gamma$ then clearly $\phi \notin \Gamma$, since
+%               otherwise $\Gamma$ would be inconsistent. If $\phi \notin \Gamma$
+%               then $\Gamma \not\entails \phi$ by \refitem{item_mcs_mem_entail}.
+%               Set $\Delta = \Gamma \cup \{\neg\phi\}$. Then $\Delta$ is
+%               consistent (one can show that assuming $\Delta$ is inconsistent
+%               leads to $\Gamma \entails \phi$; a contradiction). Again, since
+%               $\Gamma \subseteq \Delta$ and $\Gamma$ is maximally consistent,
+%               we must in fact have $\Gamma = \Delta$, so $\neg\phi \in \Gamma$.
+
+%         \item If $\phi \land \psi \in \Gamma$ then both $\Gamma \entails \phi$
+%               and $\Gamma \entails \psi$, so $\phi, \psi \in \Gamma$ by
+%               \refitem{item_mcs_mem_entail}.  Conversely, if $\phi, \psi \in
+%               \Gamma$ then $\Gamma \entails \phi \land \psi$, so $\phi \land
+%               \psi \in \Gamma$ by \refitem{item_mcs_mem_entail} again.
+
+%     \end{enumerate}
+% \end{proof}
+
+\begin{lemma}[Lindenbaum's Lemma]
+\label{lemma_lindenbaum}
+    If $\Gamma \subseteq \cL$ is consistent there is a maximally consistent set
+    $\Delta$ such that $\Gamma \subseteq \Delta$.
+\end{lemma}
+
+Let $X_{\sL}$ denote the set of maximally consistent sets. Define a relation
+$R$ by
+\[
+    \Gamma R \Delta
+    \iff
+    \forall \phi \in \cL:
+     \A\phi \in \Gamma \implies \phi \in \Delta
+\]
+The $\Tuniv$ and $\fiveuniv$ axioms for $\A$ show that $R$ is an equivalence
+relation; this is part of the standard proof that S5 is complete for
+equivalence relations, and we leave the proof to the appendix.
+
+\begin{lemma}
+\label{lemma_r_equiv_reln}
+    $R$ is an equivalence relation.
+\end{lemma}
+
+For $\phi \in \cL$, let $|\phi| = \{\Gamma \in X_{\sL} \mid \phi \in \Gamma\}$
+be the \emph{proof set} of $\phi$. For $\Sigma \in X_{\sL}$, let $X_\Sigma$ be
+the equivalence class of $\Sigma$ in $R$, and write $|\phi|_\Sigma = |\phi|
+\cap X_\Sigma$.
+%
+Using what is essentially the standard proof of the truth lemma for the modal
+logic \textbf{K} with respect to relational semantics, $\Kuniv$ yields the
+following.
+
+\begin{lemma}
+\label{lemma_xsigma_properties}
+    Let $\Sigma \in X_{\sL}$. Then
+    \begin{enumerate}\small
+        \item\label{item_xsigma_mem} For any $\phi \in \cL$, $\A\phi \in
+            \Sigma$ iff $|\phi|_\Sigma = X_\Sigma$
+
+        \item\label{item_xsigma_imp} For any $\phi, \psi \in \cL$, $\A(\phi
+            \limplies \psi) \in \Sigma$ iff $|\phi|_\Sigma \subseteq
+            |\psi|_\Sigma$
+
+        \item\label{item_xsigma_iff} For any $\phi, \psi \in \cL$, $\A(\phi
+            \liff \psi) \in \Sigma$ iff $|\phi|_\Sigma = |\psi|_\Sigma$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+      For brevity we show \refitem{item_xsigma_mem} only, deferring the rest to
+      the appendix.
+      %
+      For the left-to-right direction, suppose $\A\phi \in \Sigma$. Let
+      $\Gamma \in X_\Sigma$. Then $\Sigma R \Gamma$, so clearly $\phi
+      \in \Gamma$. Hence $|\phi|_\Sigma = X_\Sigma$.
+      %
+      For the other direction we show the contrapositive. Suppose
+      $\A\phi \notin \Sigma$. Set
+      \[
+        \Gamma_0 = \{\psi \mid \A\psi \in \Gamma\} \cup \{\neg\phi\}.
+      \]
+      We claim $\Gamma_0$ is consistent. If not, without loss of
+      generality there are $\psi_0, \ldots, \psi_n \in \Gamma_0$ such
+      that $\A\psi_i \in \Sigma$ for each $i$, and
+      $
+        \thm \psi_0 \land \cdots \land \psi_n \limplies \phi.
+      $
+      By propositional logic, we get
+      $
+          \thm \psi_0 \limplies \cdots \limplies \psi_n \limplies
+          \phi
+      $
+      (where the implication arrows associate to the right) and by
+      $\necuniv$,
+      $
+          \thm \A(\psi_0 \limplies \cdots \limplies \psi_n \limplies
+          \phi).
+      $
+      Since $\Kuniv$ together with $\modpon$ says that $\A$ distributes
+      over implications, repeated applications gives
+      $
+        \thm \A\psi_0 \limplies \cdots \limplies \A\psi_n \limplies
+        \A\phi
+      $
+      and propositional logic again gives
+      $
+          \thm \A\psi_0 \land \cdots \land \A\psi_n \limplies \A\phi.
+      $
+      But recall that $\A\psi_i \in \Sigma$. Hence $\Sigma \entails
+      \A\phi$. Since $\Sigma$ is maximally consistent, this means
+      $\A\phi \in \Sigma$: contradiction.
+
+      So $\Gamma_0$ is consistent. By Lindenbaum's lemma
+      (\cref{lemma_lindenbaum}), there is a maximally consistent set
+      $\Gamma \supseteq \Gamma_0$. Clearly $\Sigma R \Gamma$, since if
+      $\A\psi \in \Sigma$ then $\psi \in \Gamma_0 \subseteq \Gamma$.
+      Moreover, $\neg\phi \in \Gamma_0 \subseteq \Gamma$, so by
+      consistency $\phi \notin \Gamma$. Hence $\Gamma \in X_\Sigma
+      \setminus |\phi|_\Sigma$, and we are done.
+\end{proof}
+
+\begin{corollary}
+\label{cor_xsigma_agree_on_ae}
+    Let $\Sigma \in X_{\sL}$. For $\Gamma, \Delta \in X_\Sigma$ and $\phi \in
+    \cL$, $\A\phi \in \Gamma$ iff $\A\phi \in \Delta$ and $\E\phi \in \Gamma$
+    iff $\E\phi \in \Delta$.
+\end{corollary}
+
+% \begin{proof}
+%     For the first point, note that if $\A\phi \in \Gamma$ then
+%     \cref{lemma_xsigma_properties} gives $|\phi|_\Gamma = X_\Gamma$. But since
+%     $\Gamma$ and $\Delta$ are in the same equivalence class of $R$,
+%     $|\phi|_\Gamma = |\phi|_\Delta$ and $X_\Gamma = X_\Delta$.  Hence
+%     $|\phi|_\Delta = X_\Delta$, so $\A\phi \in \Delta$ by
+%     \cref{lemma_xsigma_properties}. The converse holds by symmetry.
+
+%     For the second point, if $\E\phi \in \Gamma$ then $\A\E\phi \in \Gamma$ by
+%     $\EA$. Since $\Gamma R \Delta$, we get $\E\phi \in \Delta$. Again, the
+%     converse holds by symmetry.
+% \end{proof}
+
+We are ready to define the ``canonical" model (for each $\Sigma$). Set
+$\widehat{X}_\Sigma = X_\Sigma \times \R$. This is the step described
+informally above: we enlargen $X_\Sigma$ by considering uncountably many copies
+of each point (any uncountable set would do in place of $\R$). The valuation is
+straightforward: set $\widehat{V}_\Sigma(p) = |p|_\Sigma \times \R$. For the
+expertise component of the model, say $A \subseteq \widehat{X}_\Sigma$ is
+\emph{S-closed} iff for all $\phi \in \cL$:
+\[
+    |\phi|_\Sigma \times \R \subseteq A
+    \implies |\S\phi|_\Sigma \times \R \subseteq A.
+\]
+Set $\widehat{P}_\Sigma = \widehat{P}_\Sigma^0 \cup \widehat{P}_\Sigma^1$,
+where
+\[
+\begin{aligned}
+ \widehat{P}_\Sigma^0 &= \{|\phi|_\Sigma \times \R \mid \E\phi \in \Sigma\}, \\
+ \widehat{P}_\Sigma^1 &= \{
+     A \subseteq \widehat{X}_\Sigma
+     \mid
+     A \text{ is S-closed and }
+     \forall \phi \in \cL: A \ne |\phi|_\Sigma \times \R
+ \}.
+\end{aligned}
+\]
+We have a version of the truth lemma for the model $\widehat{M}_\Sigma =
+(\widehat{X}_\Sigma, \widehat{P}_\Sigma, \widehat{V}_\Sigma)$.
+
+\begin{lemma}
+\label{lemma_truth_lemma}
+    For any $(\Gamma, t) \in \widehat{X}_\Sigma$ and $\phi \in \cL$,
+    \[
+        \widehat{M}_\Sigma, (\Gamma, t) \models \phi
+        \iff
+        \phi \in \Gamma,
+    \]
+    i.e. $\|\phi\|_{\widehat{M}_\Sigma} = |\phi|_\Sigma \times \R$.
+\end{lemma}
+
+\begin{proof}
+    By induction. The cases for atomic propositions and
+    the propositional connectives are straightforward by the definition of
+    $\widehat{V}_\Sigma$ and properties of
+    maximally consistent sets. The case for the universal modality $\A$ is also
+    straightforward by \cref{lemma_xsigma_properties,cor_xsigma_agree_on_ae}.
+    We treat the cases of $\E$ and $\S$
+    formulas.
+
+    ($\E$): First suppose $\E\phi \in \Gamma$. By
+    \cref{cor_xsigma_agree_on_ae}, $\E\phi \in \Sigma$. Hence $|\phi|_\Sigma
+    \times \R \in \widehat{P}_\Sigma^0$. By the induction hypothesis,
+    $\|\phi\|_{\widehat{M}_\Sigma} \in \widehat{P}_\Sigma^0$. Hence
+    $\widehat{M}_\Sigma, (\Gamma, t) \models \E\phi$.
+
+    Now suppose $\widehat{M}_\Sigma, (\Gamma, t) \models \E\phi$.  Then by the
+    induction hypothesis, $|\phi|_\Sigma \times \R \in \widehat{P}_\Sigma$.
+    Since $\widehat{P}_\Sigma^1$ does not contain any sets of this form, we
+    must have $|\phi|_\Sigma \times \R \in \widehat{P}_\Sigma^0$. Therefore
+    there is some $\psi$ such that $\E\psi \in \Sigma$ and $|\phi|_\Sigma
+    \times \R = |\psi|_\Sigma \times \R$.  It follows that $|\phi|_\Sigma =
+    |\psi|_\Sigma$, and \cref{lemma_xsigma_properties} then gives $\A(\phi
+    \liff \psi) \in \Sigma$. By \cref{cor_xsigma_agree_on_ae}, we have $\E\psi
+    \in \Gamma$ and $\A(\phi \liff \psi) \in \Gamma$ too. By $\reE$ we get
+    $\E\phi \in \Gamma$ as required.
+
+    ($\S$): First suppose $\S\phi \in \Gamma$. Take $A \in \widehat{P}_\Sigma$
+    such that $\|\phi\|_{\widehat{M}_\Sigma} \subseteq A$. By the induction
+    hypothesis, $|\phi|_\Sigma \times \R \subseteq A$. There are two cases:
+    either $A \in \widehat{P}_\Sigma^0$ or $A \in \widehat{P}_\Sigma^1$.
+
+    If $A \in \widehat{P}_\Sigma^0$, there is $\psi$ such that $A =
+    |\psi|_\Sigma \times \R$ and $\E\psi \in \Sigma$.  Since $|\phi|_\Sigma
+    \times \R \subseteq A$, we have $|\phi|_\Sigma \subseteq |\psi|_\Sigma$.
+    By \cref{lemma_xsigma_properties}, $\A(\phi \limplies \psi) \in \Sigma$. By
+    \cref{cor_xsigma_agree_on_ae} we have $\E\psi, \A(\phi \limplies \psi) \in
+    \Gamma$ too. Applying $\weakeningE$ gives $\S\phi \land \E\psi \limplies
+    \psi \in \Gamma$; since $\S\phi, \E\psi \in \Gamma$ we have $\S\phi \land
+    \E\psi \in \Gamma$ and thus $\psi \in \Gamma$. This means $(\Gamma, t) \in
+    |\psi|_\Sigma \times \R = A$, as required.
+
+    If $A \in \widehat{P}_\Sigma^1$, $A$ is S-closed by definition.  Hence
+    $|\S\phi|_\Sigma \times \R \subseteq A$. Since $\S\phi \in \Gamma$ we get
+    $(\Gamma, t) \in A$ as required.
+
+    In either case we have $(\Gamma, t) \in A$. This shows $\widehat{M}_\Sigma,
+    (\Gamma, t) \models \S\phi$.
+
+    For the other direction we show the contrapositive. Take any $(\Gamma, t)
+    \in \widehat{X}_\Sigma$ and suppose $\S\phi \notin \Gamma$. We show that
+    $\widehat{M}_\Sigma, (\Gamma, t) \not\models \S\phi$, i.e. there is $A \in
+    \widehat{P}_\Sigma$ such that $\|\phi\|_{\widehat{M}_\Sigma} \subseteq A$
+    but $(\Gamma, t) \notin A$.
+    %
+    First, set
+    \[
+        \mathcal{U} = \{
+        |\psi|_\Sigma \times \R
+        \mid
+        \psi \in \cL \text{ and }
+        |\psi|_\Sigma \times \R \not\subseteq |\S\phi|_\Sigma \times \R
+        \}.
+    \]
+    Since $\cL$ is countable, $\mathcal{U}$ is at most countable.
+    Hence we may write $\mathcal{U} = \{U_n\}_{n \in N}$ for some
+    index set $N \subseteq \N$. Since $U_n \not\subseteq
+    |\S\phi|_\Sigma \times \R$, we may choose some $(\Delta_n, t_n)
+    \in U_n \setminus (|\S\phi|_\Sigma \times \R)$ for each $n$. Now
+    write
+    \[
+      \mathcal{D} = \{(\Delta_n, t_n)\}_{n \in N} \cup \{(\Gamma,
+      t)\}.
+    \]
+    Since $N$ is at most countable, so too is $\mathcal{D}$.  Since
+    $\R$ is uncountable, there is some $s \in \R$ such that $(\Gamma,
+    s) \notin \mathcal{D}$.\footnote{If not, then $s \mapsto
+    (\Gamma, s)$ is an injective mapping $\R \to \mathcal{D}$, which
+    would imply $\R$ is countable.} We necessarily have $s \ne t$. We
+    are ready to define $A$: set
+    \[
+      A = (|\S\phi|_\Sigma \times \R) \cup \{(\Gamma, s)\}.
+    \]
+    Note that $(\Gamma, t) \notin A$ since $\S\phi \notin \Gamma$ and
+    $s \ne t$.
+    %
+    Next we show $\|\phi\|_{\widehat{M}_\Sigma} \subseteq A$. By the
+    induction hypothesis, this is equivalent to $|\phi|_\Sigma \times
+    \R \subseteq A$. By $\Tsoundness$ and $\necuniv$, we have
+    $\A(\phi \limplies \S\phi) \in \Sigma$, and consequently
+    $|\phi|_\Sigma \subseteq |\S\phi|_\Sigma$ by
+    \cref{lemma_xsigma_properties}. Hence $|\phi|_\Sigma \times \R
+    \subseteq |\S\phi|_\Sigma \times \R \subseteq A$ as required.
+
+    It only remains to show that $A \in \widehat{P}_\Sigma$. We claim
+    that $A \in \widehat{P}_\Sigma^1$. First, $A$ is S-closed.
+    Indeed, suppose $|\psi|_\Sigma \times \R \subseteq A$. We claim
+    that, in fact, $|\psi|_\Sigma \times \R \subseteq |\S\phi|_\Sigma
+    \times \R$. If not, then by definition of $\mathcal{U}$ there is
+    $n \in N$ such that $|\psi|_\Sigma \times \R = U_n$.  Hence $U_n
+    \subseteq A$. This means $(\Delta_n, t_n) \in A$. But
+    $(\Delta_n, t_n) \notin |\S\phi|_\Sigma \times \R$, so we must
+    have $(\Delta_n, t_n) = (\Gamma, s)$. But then $(\Gamma, s) \in
+    \mathcal{D}$: contradiction. So we do indeed have $|\psi|_\Sigma
+    \times \R \subseteq |\S\phi|_\Sigma \times \R$, and thus
+    $|\psi|_\Sigma \subseteq |\S\phi|_\Sigma$. By
+    \cref{lemma_xsigma_properties}, $\A(\psi \limplies \S\phi) \in
+    \Sigma$.
+
+    Now, take any $(\Lambda, u) \in |\S\psi|_\Sigma \times \R$.
+    Since $\Lambda \in X_\Sigma$, \cref{cor_xsigma_agree_on_ae} gives
+    $\A(\psi \limplies \S\phi) \in \Lambda$. By $\weakeningS$,
+    $\S\psi \limplies \S\S\phi \in \Lambda$. Since $\Lambda \in
+    |\S\psi|_\Sigma$, we get $\S\S\phi \in \Lambda$. But then
+    $\foursoundness$ gives $\S\phi \in \Lambda$. That is, $(\Lambda,
+    u) \in |\S\phi|_\Sigma \times \R \subseteq A$. This shows
+    $|\S\psi|_\Sigma \times \R \subseteq A$, so $A$ is
+    S-closed.
+
+    Finally, we show that for all $\psi \in \cL$, $A \ne
+    |\psi|_\Sigma \times \R$.  For contradiction, suppose there is
+    $\psi$ with $A = |\psi|_\Sigma \times \R$. Then since $(\Gamma,
+    s) \in A$, we have $\Gamma \in |\psi|_\Sigma$. But then $(\Gamma,
+    t) \in |\psi|_\Sigma \times \R = A$: contradiction.
+
+    This completes the proof that $A \in \widehat{P}_\Sigma^1$.  Thus
+    $\widehat{M}_\Sigma, (\Gamma, t) \not\models \S\phi$, and we are done.
+
+\end{proof}
+
+\begin{theorem}
+\label{thm_strong_completeness}
+    $\sL$ is strongly complete\footnotemark{} with respect to $\M$.
+\end{theorem}
+
+\footnotetext{
+    That is, for all sets $\Gamma \subseteq \cL$ and $\phi \in \cL$, if $\Gamma
+    \models \phi$ then $\Gamma \entails \phi$.
+}
+
+\begin{proof}
+We show the contrapositive. Suppose $\Gamma \not\entails \phi$.
+Then $\Gamma \cup \{\neg\phi\}$ is consistent. By Lindenbaum's
+Lemma, there is a maximally consistent set $\Sigma \supseteq \Gamma
+\cup \{\neg\phi\}$. Consider the model $\widehat{M}_\Sigma$. For
+any $\psi \in \Gamma$ we have $\psi \in \Sigma$, so
+\cref{lemma_truth_lemma} (with $t = 0$, say) gives
+$\widehat{M}_\Sigma, (\Sigma, 0) \models \psi$. Also,
+$\neg\phi \in \Gamma \subseteq \Sigma$ gives
+$\widehat{M}_\Sigma, (\Sigma, 0) \models \neg\phi$, so
+$\widehat{M}_\Sigma, (\Sigma, 0) \not\models \phi$. This shows that
+$\Gamma \not\models \phi$, and we are done.
+\end{proof}
+
+\paragraph{Extensions of the Base Logic}
+
+We now extend $\sL$ to obtain axiomatisations of sub-classes of $\M$
+corresponding to closure conditions.
+
+To start, consider closure under intersections. It was shown in
+\cref{prop_frame_conditions} that the formula $\A(\S\phi \limplies
+\phi) \limplies \E\phi$ characterises frames closed under intersections. It is
+perhaps no surprise that adding this as an axiom results in a sound and
+complete axiomatisation of $\Mint$. Formally, let $\sLint$ be the
+extension of $\sL$ with the following axiom
+\[
+    \A(\S\phi \limplies \phi) \limplies \E\phi \quad \redE,
+\]
+so-named since together with $\E\phi \limplies \A(\S\phi \limplies \phi)$
+-- which is derivable in $\sL$ -- it allows expertise to be reduced
+to soundness. That is, expertise on $\phi$ is equivalent to the statement that,
+in all situations, $\phi$ is only true up to lack of expertise if it is in fact
+true.
+
+\begin{theorem}
+\label{thm_mint_axiomatisation}
+$\sLint$ is sound and strongly complete with respect to
+$\Mint$.
+\end{theorem}
+
+\begin{proof}[Proof (sketch)]
+
+    For soundness, we only need to check that $\redE$ is sound for $\Mint$. But
+    this follows from \cref{prop_frame_conditions}
+    \refitem{item_frame_condition_intersections}.
+
+    For completeness, we take a similar, but simplified, approach to the
+    general case. Let $X_{\sLint}$ be the set of maximally $\sLint$-consistent
+    sets, and let $R$ be defined as before (but now on $X_{\sLint}$).
+    %
+    Overriding earlier terminology, for any fixed $\Sigma \in X_{\sLint}$ say
+    $A \subseteq X_\Sigma$ is \emph{S-closed} iff $|\phi|_\Sigma \subseteq A$
+    implies $|\S\phi|_\Sigma \subseteq A$ for all $\phi \in \cL$.
+    %
+    The construction of the canonical model for a given $\Sigma$ is now
+    straightforward: set $M_\Sigma = (X_\Sigma, P_\Sigma, V_\Sigma)$, where $A
+    \in P_\Sigma$ iff $A$ is S-closed, and $V_\Sigma(p) = |p|_\Sigma$.
+    %
+    It is straightforward to check that $M_\Sigma$ is in $\Mint$, i.e.
+    intersections of S-closed sets are S-closed. We also have the truth lemma
+    for $M_\Sigma$: $M_\Sigma, \Gamma \models \phi \iff \phi \in \Gamma$.
+
+    As usual, the only interesting cases are $\S$ and $\E$ formulas. For
+    $\S\phi$, the ``if" direction is almost immediate by the definition of
+    S-closed and the induction hypothesis. The ``only if" direction is shown by
+    contraposition. We show $|\S\phi|_\Sigma$ is S-closed using the analogue of
+    \cref{lemma_xsigma_properties}, $\weakeningS$ and $\foursoundness$; if
+    $\S\phi \notin \Gamma$, $M_\Sigma, \Gamma \not\models \S\phi$ follows from
+    the induction hypothesis and $\Tsoundness$.
+
+    For the ``if" direction for $\E\phi$, we use
+    \cref{lemma_xsigma_properties}, \cref{cor_xsigma_agree_on_ae} and
+    $\weakeningE$ to show that $|\phi|_\Sigma$ is S-closed. For the ``only if"
+    direction, the induction hypothesis gives that $|\phi|_\Sigma$ is S-closed.
+    Since $|\phi|_\Sigma \subseteq |\phi|_\Sigma$, we get $|\S\phi|_\Sigma
+    \subseteq |\phi|_\Sigma$. By
+    \cref{lemma_xsigma_properties,cor_xsigma_agree_on_ae} again, $\A(\S\phi
+    \limplies \phi) \in \Gamma$, and $\E\phi \in \Gamma$ by $\redE$.
+
+    Strong completeness follows using Lindenbaum's lemma as before.
+
+\end{proof}
+
+Now we add finite unions to the mix. It was shown in
+\cref{prop_finite_unions_frame_condition} that within class $\Mint$, the
+\textbf{K} axiom for the dual operator $\hat\S$ characterises closure under
+finite unions. Note that any frame $(X, P)$ closed under intersections and
+finite unions is a topological space,\footnote{By the convention that the empty
+intersection is the whole space $X$ and the empty union is $\emptyset$, we have
+$X, \emptyset \in P$ too.} where $P$ is the set of \emph{closed} sets. Write
+$\Mtop = \Mint \cap \Mfunions$ for the class of models over such frames. We
+obtain an axiomatisation of $\Mtop$ by adding \textbf{K} for $\hat\S$ and a
+bridge axiom linking $\hat\S$ and $\A$:
+\[
+    \begin{array}{lr}
+        \hat{\S}(\phi \limplies \psi) \limplies (\hat{\S}\phi \limplies \hat{\S}\psi)
+            & \Ksoundness \\
+        \A\phi \limplies \hat\S\phi
+    & \inc
+    \end{array}
+\]
+Let $\sLtop$ be the extension
+of $\sLint$ by $\Ksoundness$ and $\inc$. Note that $\sLtop$ contains the
+\textbf{KT4} axioms for $\hat\S$ (recalling that $\Tsoundness$ and
+$\foursoundness$ are the ``diamond" versions of \textbf{T} and \textbf{4}).
+Since \textbf{KT4} together with the bridge axiom $\inc$ is complete for the
+class of relational models $\Msfour$, we can exploit
+\cref{thm_s4s5_translation} to obtain completeness of $\sLtop$ with respect to
+$\Mint \cap \Munions$. Since this class is included in $\Mtop$, we also get
+completeness with respect to $\Mtop$.\footnote{Note that \textbf{KT4} is also
+complete for topological spaces with respect to the interior
+semantics~\citep{van2007modal}.}
+
+\begin{theorem}
+\label{thm_mtop_axiomatisation}
+    $\sLtop$ is sound and strongly complete with respect to $\Mtop$.
+\end{theorem}
+
+\begin{proof}[Proof (sketch)]
+
+    Soundness of $\Ksoundness$ for $\Mtop$ follows from
+    \cref{prop_finite_unions_frame_condition}. For $\inc$, suppose $M = (X, P,
+    V) \in \Mtop$, $x \in X$ and $M, x \models \A\phi$. Then $\|\phi\|_M = X$,
+    so $\|\neg\phi\|_M = \emptyset$. By the convention that the empty set is
+    the empty union $\bigcup\emptyset$ (which is a finite union), we have
+    $\emptyset \in P$. Taking $A = \emptyset$ in the definition of the
+    semantics for $\S$, we have $\|\neg\phi\|_M \subseteq A$ but clearly $x
+    \notin A$. Hence $M, x \not\models \S\neg\phi$, so $M, x \models
+    \hat\S\phi$.
+
+    For completeness we offer only a sketch of the proof, leaving the details
+    to the appendix. First, define a translation $u: \cLKA \to \cL$ by sending
+    $\K\phi$ to $\neg\S\neg u(\phi)$ and $\A\phi$ to $\A u(\phi)$. Then $u$ is
+    the inverse of $t: \cL \to \cLKA$ from \cref{sec_connection_with_ep_logic}
+    up to $\sLtop$-equivalence, in the sense that $\entails_{\sLtop} \phi \liff
+    u(t(\phi))$ for all $\phi \in \cL$. Now let $\sLsfoura$ be the logic over
+    $\cLKA$ consisting of \textbf{KT4} for $\K$, \textbf{KT5} for $\A$, and a
+    bridge axiom $\A\phi \limplies \K\phi$. Then $\sLsfoura$ is strongly
+    complete with respect to $\Msfour$~\citep[Theorem 7.2]{blackburn2002modal}.
+    Since the logic
+    $\sLtop$ contains \textbf{KT4} for $\hat\S$ and the bridge axiom, one can
+    show by induction on $\sLsfoura$ proofs that $\entails_{\sLsfoura}\psi$
+    implies $\entails_{\sLtop}u(\psi)$, for all $\psi \in \cLKA$. Using the
+    connection between $u$ and $t$, we get that $\entails_{\sLsfoura}t(\phi)$
+    implies $\entails_{\sLtop}\phi$. Finally, to show strong completeness
+    suppose $\Gamma \models_{\Mtop} \phi$. Then by \cref{thm_s4s5_translation},
+    and using the fact that $\Mtop \supseteq \Mint \cap \Munions$, we have
+    $t(\Gamma) \models_{\Msfour} t(\phi)$; strong completeness gives $t(\Gamma)
+    \entails_{\sLsfoura} t(\phi)$ and thus $\Gamma \entails_{\sLtop} \phi$.
+
+\end{proof}
+
+Just as the connection between S4 and $\Mint \cap \Munions$ allowed us
+to obtain a complete axiomatisation of $\Mtop$, we can axiomatise $\Mint \cap
+\Mcompl$ by considering S5. For brevity, write $\Mintcompl = \Mint
+\cap \Mcompl$. Let $\sLintcompl$ be the extension of $\sLtop$
+with the \textbf{5} axiom for $\hat\S$, which we present in the ``diamond"
+form:
+\[
+\S\neg\S\phi \limplies \neg\S\phi
+\quad
+\fivesoundness\]
+\begin{theorem}
+\label{thm_mintcompl_axiomatisation}
+$\sLintcompl$ is sound and strongly complete with respect to
+$\Mintcompl$.
+\end{theorem}
+
+\section{The Multi-source Case}
+\label{sec_multisource}
+
+So far we have been able to model the expertise of only a single
+source. In this section we generalise the setting to handle \emph{multiple}
+sources. This allows us to consider not only the expertise of different
+sources individually, but also notions of \emph{collective expertise}. For
+example, how may sources \emph{combine} their expertise? Is there a suitable
+notion of
+\emph{common expertise}? To answer these questions we take inspiration from the
+well-studied notions of \emph{distributed knowledge} and \emph{common
+knowledge} from epistemic logic \citep{fagin2003reasoning}, and
+establish connections between collective expertise and collective knowledge.
+
+\subsection{Collective Knowledge}
+
+Let $\J$ be a finite, non-empty set of sources. Turning briefly to epistemic
+logic interpreted under relational semantics, we recount several notions of
+collective knowledge. First, a \emph{multi-source relational model} is a triple
+$M^* = (X, \{R_j\}_{j \in \J}, V)$, where $R_j$ is a binary relation on $X$ for
+each $j$. Consider the following knowledge operators \citep{fagin2003reasoning}:
+
+\begin{itemize}
+\item $\K_j\phi$ (individual knowledge): for $j \in J$ and a formula
+$\phi$, set
+    \[
+    M^*, x \models \K_j\phi
+\iff
+\forall y \in X: x{R_j}y \implies M^*, y \models \phi.\]
+    This is the straightforward adaptation of knowledge in the single-source case
+to the multi-source setting.
+
+    \item $\Kdist_J\phi$ (distributed knowledge): for $J \subseteq \J$
+non-empty, set
+    \[
+    M^*, x \models \Kdist_J\phi
+\iff
+\forall y \in X: (x, y) \in \bigcap_{j \in J}{R_j}
+    \implies M^*, y \models \phi.\]
+    That is, knowledge of $\phi$ is distributed among the sources in
+$J$ if, by combining their accessibility relations $R_j$, all
+states possible at $x$ satisfy $\phi$. Here the $R_j$ are
+combined by taking their intersection: a state $y$ is possible
+according to the group at $x$ iff \emph{every} source in $J$ considers
+$y$ possible at $x$.
+
+    \item $\Kshared_J\phi$ (shared knowledge):\footnotemark{} for $J \subseteq
+      \J$ non-empty, set
+    \[
+    M^*, x \models \Kshared_J\phi
+\iff
+\forall j \in J: M^*, x \models \K_j\phi.\]
+    That is, a group $J$ have shared knowledge of $\phi$ exactly when
+each agent in $J$ knows $\phi$. Thus we have
+$\Kshared_J\phi \equiv \bigland_{j \in J}\K_j\phi$.
+
+    \footnotetext{In \citet{fagin2003reasoning}, shared knowledge is denoted
+        $\mathsf{E}_J\phi$ for ``everybody knows $\phi$". We opt to use the
+        term ``shared" knowledge to avoid conflict with our notation for
+        expertise.}
+
+    \item $\Kcommon_J\phi$ (common knowledge): write $\K_J^1\phi$ for
+$\Kshared_J\phi$, and for $n \in \N$ write $\K_J^{n +
+1}\phi$ for $\Kshared_J\K_J^n\phi$. Then
+    \[
+    M^*, x \models \Kcommon_J\phi
+\iff
+\forall n \in \N: M^*, x \models \K_J^n\phi.\]
+    Here $\K_J^1\phi$ says that everyone in $J$ knows $\phi$,
+$\K_J^2\phi$ says that everybody in $J$ knows that everybody in
+$J$ knows $\phi$, and so on. There is common knowledge of
+$\phi$ among $J$ if this nesting of ``everybody knows" holds for
+any order $n$.
+
+    \end{itemize}
+
+In what follows we write $\cLKAJ$ for the language formed from $\Prop$ with
+knowledge operators $\K_j$, $\Kdist_J$, $\Kshared_J$ and $\Kcommon_J$, for $j
+\in \J$ and $J \subseteq \J$ non-empty, and the universal modality $\A$.
+
+\subsection{Collective Expertise}
+
+Returning to expertise semantics, define a \emph{multi-source expertise model}
+as a triple $M = (X, \{P_j\}_{j \in \J}, V)$, where $P_j \subseteq 2^X$ is the
+collection of expertise sets for source $j$. Say $M$ is closed under
+intersections, unions, complements etc. if each $P_j$ is. Since the connection
+between expertise and S4 knowledge (\cref{thm_s4s5_translation}) holds for
+expertise models closed under unions and intersections, we restrict
+attention to this class of (multi-source) models in this section.
+
+The counterpart of individual knowledge -- individual expertise -- is
+straightforward: we may simply introduce expertise and soundness operators
+$\E_j$ and $\S_j$ for each source $j \in \J$, and interpret
+$\E_j\phi$ and $\S_j\phi$ as in the single-source case using
+$P_j$. For notions of collective expertise and soundness, we define new
+collections $P_J$ by combining the $P_j$ in an appropriate way.
+
+\paragraph{Distributed Expertise}
+
+For distributed expertise, the intuition is clear: the sources in a group
+$J$ should combine their expertise collections $P_j$ to form a
+larger collection $\Pdist_J$. A first candidate for $\Pdist_J$
+would therefore be $\bigcup_{j \in J}{P_j}$. However, since we assume
+each $P_j$ is closed under unions and intersections, we suppose that each
+source $j$ has the cognitive or computational capacity to combine expertise
+sets $A \in P_j$ by taking unions or intersections. We argue that the
+same should be possible for the group $J$ as a whole, and therefore let
+$\Pdist_J$ be the closure of $\bigcup_{j \in J}{P_j}$ under unions
+and intersections:
+\[
+\Pdist_J
+= \bigcap\left\{
+ P' \supseteq \bigcup_{j \in J}{P_j}
+ \mid
+ P' \text{ is closed under unions and intersections}
+\right\}.\]
+Note that $\Pdist_J$ is closed under unions and intersections, and
+$P_j \subseteq \Pdist_J$ for all $j \in J$ (in fact,
+$\Pdist_J$ is the smallest set with these properties). While
+$\Pdist_J$ depends on the model $M$, we suppress this from the
+notation.
+
+Now, recall from \cref{thm_s4s5_translation} that our semantics for
+expertise and soundness is connected to relational semantics via the mapping
+$P \mapsto R_P$ (\cref{def_rp}). The following result shows that
+$\Pdist_J$ corresponds to distributed knowledge under this mapping. For
+ease of notation, write $\Rdist_J$ for $R_{\Pdist_J}$ and
+$R_j$ for $R_{P_j}$.
+
+\begin{proposition}
+\label{prop_rpdist}
+For any multi-source expertise model $M$ and $J \subseteq \J$ non-empty,
+\[
+\Rdist_J = \bigcap_{j \in J}{R_j}.\]
+\end{proposition}
+
+\begin{proof}
+    ``$\subseteq$": Suppose $x{\Rdist_J}y$. Let $j \in J$.  We need to show
+    $x{R_j}y$. Take any $A \in P_j$ such that $y \in A$. Then $A \in \Pdist_J$,
+    so $x{\Rdist_J}y$ gives $x \in A$. Hence $x{R_j}y$.
+
+    ``$\supseteq$": Suppose $(x, y) \in \bigcap_{j \in J}{R_j}$, i.e. $x{R_j}y$
+    for all $j \in J$. Set
+    \[
+        P' = \{A \in \Pdist_J \mid y \in A \implies x \in A\}
+        \subseteq \Pdist_J.
+    \]
+    Then $P' \supseteq \bigcup_{j \in J}{P_j}$, since if $j \in J$ and $A \in
+    P_j$ then $A \in \Pdist_J$ and $y \in A$ implies $x \in A$ by $x{R_j}y$.
+    We claim $P'$ is closed under intersections. Suppose $\{A_i\}_{i \in I}
+    \subseteq P'$ and write $A = \bigcap_{i \in I}{A_i}$. Since $P' \subseteq
+    \Pdist_J$ and $\Pdist_J$ is closed under intersections, $A \in \Pdist_J$.
+    Suppose $y \in A$.  Then $y \in A_i$ for each $i$, so $x \in A_i$ by the
+    defining property of $P'$. Hence $x \in \bigcap_{i \in I}{A_i} = A$. This
+    shows $A \in P'$ as desired. A similar argument shows that $P'$ is also
+    closed under unions.
+
+    We see from the definition of $\Pdist_J$ that $\Pdist_J \subseteq P'$, so
+    in fact $P' = \Pdist_J$. It now follows that $x{\Rdist_J}y$: for any $A \in
+    \Pdist_J$ with $y \in A$ we have $A \in P'$, so $x \in A$ also.
+
+\end{proof}
+
+\paragraph{Common Expertise}
+
+Common expertise admits a straightforward definition: simply take the expertise
+sets in common with all $P_j$:
+\[
+\Pcommon_J = \bigcap_{j \in J}{P_j}.\]
+If each $P_j$ is closed under unions and intersections, then so too is
+$\Pcommon_J$.
+
+At first this may appear \emph{too} straightforward. The form of the definition
+is closer to \emph{shared} knowledge than to common knowledge. But in fact,
+shared knowledge has \emph{no} expertise counterpart which admits the type of
+connection established in \cref{thm_s4s5_translation}. Indeed, shared knowledge
+may fail positive introspection (axiom \textbf{4}: $\K\phi \limplies
+\K\K\phi$), but we have seen that the knowledge derived from expertise and
+soundness satisfies S4 (when the collection of expertise sets is closed under
+unions and complements).
+
+However, this problem is only apparent in the translation of $\S\phi$ as
+$\neg\K\neg\phi$. For our translation of $\E\phi$ as $\A(\neg\phi \limplies
+\K\neg\phi)$, the universal quantification via $\A$ dissolves the differences
+between shared and common knowledge.
+
+\begin{proposition}
+\label{prop_shared_common_collapse}
+Let $\phi \in \cLKAJ$ and let $J \subseteq \J$ be non-empty.
+Then
+\[
+\A(\neg\phi \limplies \Kcommon_J\neg\phi)
+\equiv
+\A(\neg\phi \limplies \Kshared_J\neg\phi).\]
+\end{proposition}
+
+\Cref{prop_shared_common_collapse} shows that when interpreting collective
+expertise on $\phi$ as collective refutation of $\phi$ whenever
+$\phi$ is false, there is no difference between using common knowledge
+and just shared knowledge.
+
+We now confirm that $\Pcommon_J$ does indeed correspond to common
+knowledge. First we recall a well-known result from \citet{fagin2003reasoning}.
+In what follows, write $R^\trcls = \bigcup_{n \in \N}{R^n}$ for the transitive
+closure of $R$.
+
+\begin{lemma}[\citet{fagin2003reasoning}, Lemma 2.2.1]
+\label{lemma_common_knowledge_transitive_closure}
+Let $M^* = (X, \{R_j\}_{j \in \J}, V)$ be a multi-source relational
+model and $J \subseteq \J$ non-empty. Write $R' =
+\left(\bigcup_{j \in J}{R_j}\right)^\trcls$. Then for all $x \in X$
+and $\phi \in \cLKAJ$:
+\[
+M^*, x \models \Kcommon_J\phi
+\iff
+\forall y \in X: x{R'}y \implies M^*, y \models \phi.\]
+\end{lemma}
+
+By \cref{lemma_common_knowledge_transitive_closure}, common knowledge has an
+interpretation in terms of the usual relational semantics for knowledge, where
+we use the transitive closure of the union of the accessibility relations of
+the sources in $J$.
+%
+Writing $\Rcommon_J$ for $R_{\Pcommon_J}$, we have the following.
+
+\begin{proposition}
+\label{prop_rcommon}
+Let $M$ be a multi-source model closed under unions and intersections.
+Then for $J \subseteq \J$ non-empty,
+$
+\Rcommon_J = \left(
+  \bigcup\nolimits_{j \in J}{R_j}
+\right)^{\trcls}.$
+\end{proposition}
+\begin{proof}
+
+    Write $R' = (\bigcup_{j \in J}{R_j})^{\trcls}$. Note that $\Rcommon_J$ is
+    reflexive and transitive by \cref{lemma_p_to_rp_mapping}
+    \refitem{item_rp_ref_and_tr}. $R'$ is transitive by its definition as a
+    transitive closure, and reflexive since each $R_j$ is (and $J \ne
+    \emptyset$).
+    %
+    It is therefore sufficient by
+\cref{lemma_same_dc_sets_implies_equality} to show that any set
+is downwards closed wrt $\Rcommon_J$ iff it is
+downwards closed wrt $R'$. Since each $P_j$ is closed under
+unions and intersections, so too is $\Pcommon_J$. Using
+\cref{lemma_p_to_rp_mapping} \refitem{item_rp_dc_property}, we have
+\[
+\begin{aligned}
+   A \text{ downwards closed wrt } \Rcommon_J
+   &\iff A \in \Pcommon_J \\
+   &\iff \forall j \in J: A \in P_j \\
+   &\iff \forall j \in J: A \text{ downwards closed wrt } R_j \\
+   &\iff A \text{ downwards closed wrt } \bigcup\nolimits_{j \in J}{R_j} \\
+   &\iff A \text{ downwards closed wrt } R'
+\end{aligned}\]
+where the last step uses the fact that $A$ is downwards closed with respect to
+some relation if and only if it is downwards closed with respect to the
+transitive closure. %This completes the proof.
+
+\end{proof}
+
+\paragraph{Collective semantics}
+
+We now formally define the syntax and semantics of collective expertise. Let
+$\cLJ$ be the language defined by the following grammar:
+\[
+\phi ::=
+p \mid
+\phi \land \phi \mid
+\neg\phi \mid
+\E_j\phi \mid \S_j\phi \mid
+\E_J^g\phi \mid \S_J^g\phi \mid
+\A\phi\]
+for $p \in \Prop$, $j \in \J$, $g \in \{\dist, \common\}$ and
+$J \subseteq \J$ non-empty. For a multi-source expertise model $M =
+(X, \{P_j\}_{j \in \J}, V)$, define the satisfaction relation as before for
+atomic propositions, propositional connectives and
+$\A$, and set
+\[
+\begin{array}{lllr}
+ M, x &\models E_j\phi &\iff \|\phi\|_M \in P_j \\
+ M, x &\models E_J^g\phi &\iff \|\phi\|_M \in P_J^g
+     & (g \in \{\dist, \common\}) \\
+ M, x &\models S_j\phi &\iff \forall A \in P_J: \|\phi\|_M \subseteq A
+     \implies x \in A \\
+ M, x &\models S_J^g\phi &\iff \forall A \in P_J^g: \|\phi\|_M \subseteq A
+     \implies x \in A
+     & (g \in \{\dist, \common\})
+\end{array}\]
+Note that expertise and soundness are interpreted as before, but with respect
+to different collections $P$. Consequently, the interactions
+shown in \cref{prop_validities} still hold for individual and collective
+notions of expertise and soundness.
+
+\begin{example}
+\label{ex_mutlisource}
+
+    Extending \cref{ex_economist_motivation,ex_economist_formalisation},
+    consider $\J = \{\econ, \dr, \analyst\}$, where $\econ$ is the economist,
+    $\dr$ is a doctor with expertise on $i$ only, and $\analyst$ has access to
+    aggregate data distinguishing three levels of virus activity: minimal
+    ($\neg i \land \neg d$), high ($(i \lor d) \land \neg(i \land d)$) and very
+    high ($i \land d$). This can be modelled by a multi-source model $M$ with
+    $X$, $V$ and $P_\econ$ as in \cref{ex_economist_formalisation}, and $P_\dr
+    = \{\emptyset, X, \{ipd, ip, id, i\}, \{pd, p, d, \emptyset\}\}$,
+    $P_\analyst$ is the closure under unions of $\{\emptyset, X, \{ipd, id\},
+    \{ip, pd, i, d\}, \{p, \emptyset\}\}$.
+
+    Note that neither $\dr$ nor $\analyst$ have expertise on $d$ individually.
+    However, if $\dr$ can communicate whether or not $i$ holds, this gives
+    $\analyst$ enough information to disambiguate the ``high activity'' case
+    and therefore determine $d$. Indeed, we have $\|d\| = \|i \land d\| \cup
+    (\|i \lor d\| \setminus \|i \land d\| \cap \|\neg i\|)$, which is formed by
+    unions and intersections from $P_\dr \cup P_\analyst$, and thus $\|d\| \in
+    \Pdist_{\{\dr, \analyst\}}$. Hence $M \models \E_{\{\dr, \analyst\}}^\dist
+    d$.
+    %
+    Similarly, $\dr$ and $\analyst$ have distributed expertise on $\neg d$.
+    Bringing back $\econ$, the grand coalition $\J$ have distributed expertise
+    on the original report $p \land \neg d$ from
+    \cref{ex_economist_motivation}. Consequently, the report is no longer sound
+    at ``actual" state $idp$: all sources together have sufficient expertise to
+    know it is false.
+
+\end{example}
+
+The following validities express properties
+specific to collective expertise.
+% In what follows, we write $\MJ$ for
+% the class of multi-source models, and adopt similar notation for sub-classes.
+
+\begin{proposition}
+\label{prop_collective_validities}
+The following formulas are valid.
+
+\begin{enumerate}\small
+    \item For $j \in J$, $\E_j\phi \limplies \E_J^\dist\phi$
+
+    \item $\E_J^\common\phi \liff \bigland_{j \in J}{\E_j\phi}$
+
+    \item\label{item_common_exp_fp} $\S_J^\common\phi \liff \biglor_{j \in
+        J}\S_j\S_J^\common\phi$
+
+    \item $\E_{\{j\}}^\dist\phi \liff \E_j\phi$ is valid on $\MintJ \cap
+          \MunionsJ$
+
+    \end{enumerate}
+\end{proposition}
+\begin{proof}
+    We prove only \refitem{item_common_exp_fp}; the others are straightforward.
+    The right implication is valid since $\psi \limplies \S_j\psi$ is, with
+    $\psi$ set to $\S_J^\common\phi$ and $j \in J$ arbitrary (recall $J$ is
+    non-empty).
+    %
+    For the left implication, suppose there is $j \in J$ with $M, x \models
+    \S_j\S_J^\common\phi$. Then $x \in \bigcap\{A \in P_j \mid
+    \|\S_J^\common\phi\|_M \subseteq A\}$. Now take $B \in P_J^\common$ such
+    that $\|\phi\|_M \subseteq B$. Note that if $y \in \|\S_J^\common\phi\|$
+    then $y \in B$ by the definition of the semantics for $\S_J^\common$, so
+    $\|\S_J^\common\phi\|_M \subseteq B$. Since $B \in P_J^\common \subseteq
+    P_j$, we get $x \in B$.  This shows $M, x \models \S_J^\common\phi$.
+\end{proof}
+
+Validity \refitem{item_common_exp_fp} comes from the
+\emph{fixed-point axiom} for common knowledge: $\Kcommon_J\phi \liff
+\Kshared_J(\phi \land \Kcommon_J\phi)$. Our version says
+$\S_J^\common\phi$ is a fixed-point of the function $\theta \mapsto \biglor_{j
+\in J}{\S_j\theta}$. In words, $\phi$ is true up to lack of \emph{common}
+expertise iff there is some source for whom $\S_J^\common\phi$ is true up to
+their lack of (individual) expertise.
+
+As promised, there is a tight link between our notions of collective
+expertise and knowledge. Define a translation $t: \cLJ \to
+\cLKAJ$ inductively by
+\[
+\begin{array}{lllr}
+ &t(\E_j\phi) &= \A(\neg t(\phi) \limplies \K_j\neg t(\phi)) \\
+ &t(\E_J^g\phi) &= \A(\neg t(\phi) \limplies \K_J^g\neg t(\phi))
+     &(g \in \{\dist, \common\}) \\
+ &t(\S_j\phi) &= \neg\K_j\neg t(\phi) \\
+ &t(\S_J^g\phi) &= \neg\K_J^g\neg t(\phi)
+     &(g \in \{\dist, \common\}) \\
+\end{array}\]
+where the other cases are as for $t$ in \cref{sec_connection_with_ep_logic}.
+This is essentially the same translation as before, but with the various
+types of expertise and soundness matched with their knowledge counterparts. We
+have an analogue of \cref{thm_s4s5_translation}.
+
+\begin{theorem}
+\label{thm_collective_s4s5_translation}
+The mapping $f: \MintJ \cap \MunionsJ \to \MsfourJ$ given by
+$(X, \{P_j\}_{j \in \J}, V) \mapsto (X, \{R_{P_j}\}_{j \in \J}, V)$ is
+bijective, and for $x \in X$ and $\phi \in \cLJ$:
+\[
+M, x \models \phi \iff f(M), x \models t(\phi).\]
+Moreover, the restriction of this map to $\MintJ \cap \McomplJ$ is a
+bijection into $\MsfiveJ$.
+\end{theorem}
+
+\begin{proof}
+That the map is bijective follows easily from
+\cref{thm_s4_semantic_link,thm_s5_semantic_link}. For
+the stated property we proceed by induction on $\cLJ$ formulas. As in
+\cref{thm_s4s5_translation}, the cases for atomic propositions,
+propositional connectives and $\A$ are straightforward.
+%
+For expertise and soundness, the argument in the proof of
+\cref{thm_s4s5_translation} showed that $\E\phi$ and
+$\S\phi$ interpreted via some collection $P$ is
+equivalent to $t(\E\phi)$ and $t(\S\phi)$ interpreted wrt
+relational semantics via $R_P$.
+%
+It is therefore sufficient to show that for each notion of individual and
+collective expertise interpreted in $M$ via $P$, its
+corresponding notion of individual or collective knowledge (used in the
+translation $t$) is interpreted in $f(M)$ via $R_P$.
+This is self-evident for individual expertise. For distributive expertise
+this was shown in \cref{prop_rpdist}. For common expertise this was
+shown in \cref{lemma_common_knowledge_transitive_closure,prop_rcommon}.
+
+\end{proof}
+
+\Cref{thm_collective_s4s5_translation} can be used to adapt any sound and
+complete axiomatisation for $\MsfourJ$ (resp., $\MsfiveJ$) over
+the language $\cLKAJ$ to obtain an axiomatisation for $\MintJ \cap
+\MunionsJ$ (resp., $\MintJ \cap \McomplJ$) over $\cLJ$, in the
+same way as we did earlier when adapting S4 and S5 in
+\cref{thm_mtop_axiomatisation,thm_mintcompl_axiomatisation}.
+
+% \section{Dynamic Extension}
+
+% So far our picture has been entirely static. We cannot speak of expertise
+% changing over time, nor of the information in a model changing via
+% announcements from sources. To remedy this, we extend the framework with two
+% \emph{dynamic} operators: one to account for \emph{increases in expertise} --
+% e.g. after a process of learning or acquisition of new evidence -- and one to
+% model \emph{sound announcements}. For simplicity, we return to the
+% single-source case.
+
+% \subsection{Expertise Increase}
+
+% As a source interacts with the world over time, they may learn to make more
+% distinctions between possible states of the world, and thereby increase their
+% expertise. Leaving the particulars of the learning mechanism unspecified, we
+% study only the end result: the source's expertise collection $P$ is
+% expanded to include a new set $A$.
+
+% However, this may not be so simple as setting $P' = P \cup \{A\}$ in light of
+% the closure properties that may be imposed $P$. As remarked in
+% \cref{sec_closure_properties}, closure conditions correspond to assumptions
+% about the source's cognitive or computational capabilities. It seems natural
+% that if the source has the ability to combine sets in $P$ by taking
+% intersections, for example, then they should also be able to do after the
+% learning, i.e.  $P'$ should also be closed under intersections. Thus, the new
+% collection $P'$ should inherit any closure properties from $P$, while extending
+% $P \cup \{A\}$. In principle, we could therefore consider an expertise increase
+% operation for \emph{each} combination of closure properties.
+
+% For concreteness we will not do this, and will instead focus on the class
+% $\Mint$ of models closed under intersections. Conceptually, this is a minimal
+% requirement, since we argued in section \cref{sec_closure_properties} that
+% closure under intersections is a natural property. There are also technical
+% advantages: we will later show that closure under intersections allows us to
+% find reduction axioms which allow the formulas involving expertise increase to
+% be equivalently expressed in the static language.
+
+% \begin{definition}
+% \label{def_expinc_model}
+% Given an expertise model $M = (X, P, V)$ and a formula $\phi$,
+% define the model $M^{\expinc\phi} = (X, P^{\expinc\phi}, V)$ by
+% setting
+% \[
+% P^{\expinc\phi}
+% =
+% \left\{\bigcap \mathcal{A} \mid \mathcal{A} \subseteq P \cup \{\|\phi\|_M\}\right\}.
+% \]
+% That is, $P^{\expinc\phi}$ is obtained by adding
+% $\|\phi\|_M$ to $P$ and closing under intersections.
+
+% \end{definition}
+
+% Syntactically, we introduce formulas of the form $[\expinc\phi]\psi$,
+% which are to be read as ``$\psi$ holds after the source gains expertise on
+% $\phi$". The truth condition for $[\expinc\phi]\psi$ in a model
+% $M$ is defined in terms of $M^{\expinc\phi}$:
+% \[
+% M, x \models [\expinc\phi]\psi
+% \iff
+% M^{\expinc\phi}, x \models \psi.\]
+% If $\cLzero$ denotes the propositional language built from $\Prop$,
+% then $[\expinc\alpha]\E\alpha$ is valid for all $\alpha \in
+% \cLzero$. That is, expertise increase is successful for any propositional
+% formula. However, this is not the case for general formulas $\phi \in
+% \cL$. This comes from the fact that expertise is represented \emph{semantically} via
+% sets of states. The operator $[\expinc\phi]$ represents the source
+% obtaining expertise on the set of $\phi$ states, where $\phi$ is
+% interpreted \emph{before the increase took place}. If $\phi$ refers to
+% expertise (with $\E$ or $\S$) then the meaning of $\phi$ may
+% change after the increase. For example, consider the model $M = (X, P,
+% V)$ with
+% \[
+% \begin{aligned}
+%     &X = \{1, 2, 3, 4\} \\
+%     &P = \{\emptyset, X, \{1, 3\}\} \\
+%     &V(p) = \{1\} \\
+%     &V(q) = \{2, 3\}
+% \end{aligned}\]
+% Then, with $\phi = p \lor (q \land \neg\S p)$ we have $M, 1 \not\models
+% [\expinc\phi]\E\phi$.\footnotemark{} This counterexample is reminiscent of
+% \emph{Moore sentences} as formalised in Dynamic Epistemic Logic; e.g. an agent
+% cannot know $p \land \neg\K p$ (``$p$ is true but I do not know it") after this
+% is truthfully announced \citep{baltag2008qualitative}.
+
+% \footnotetext{In detail, we have $\|\phi\|_M = \{1, 2\}$, so
+% $P^{\expinc\phi} = \{\emptyset, X, \{1, 3\}, \{1, 2\}, \{1\}\}$. Then
+% $\|\phi\|_{M^{\expinc\phi}} = \{1, 2, 3\} \notin P^{\expinc\phi}$, so
+% $M^{\expinc\phi}, 1 \not\models \E\phi$.}
+
+% Next we give reduction axioms to express any formula involving
+% $[\expinc\phi]$ by an equivalent formula in the static language
+% $\cL$.
+
+% \begin{proposition}
+% \label{prop_expinc_reduction_axioms}
+% The following formulas are valid on $\M$:
+% \[
+% \begin{aligned}
+% [\expinc\phi]p &\quad\liff\quad p \\
+% [\expinc\phi](\psi \land \theta)
+%      &\quad\liff\quad [\expinc\phi]\psi \land [\expinc\phi]\theta \\
+% [\expinc\phi]\neg\psi &\quad\liff\quad \neg[\expinc\phi]\psi \\
+% [\expinc\phi]\A\psi &\quad\liff\quad \A[\expinc\phi]\psi \\
+% [\expinc\phi]\S\psi
+%     &\quad\liff\quad
+%          \S[\expinc\phi]\psi
+%          \land
+%          (
+%              \A([\expinc\phi]\psi \limplies \phi)
+%              \limplies
+%              \phi
+%          )
+%     \\
+% [\expinc\phi]\E\psi
+%     &\quad\liff\quad
+%      \A(
+%          (
+%              \S[\expinc\phi]\psi
+%              \land
+%              (
+%                  \A([\expinc\phi]\psi \limplies \phi)
+%                  \limplies
+%                  \phi
+%              )
+%          )
+%          \limplies
+%          [\expinc\phi]\psi
+%      )
+% \end{aligned}\]
+% \end{proposition}
+% \begin{proof}
+% The cases for atomic propositions, propositional connectives and
+% $\A$ are straightforward. We show the reduction axiom for
+% $\S$. Let $M = (X, P, V)$ be a model and $x \in X$.
+
+% ``$\limplies$": Suppose $M, x \models [\expinc\phi]\S\psi$.
+% Then $M^{\expinc\phi}, x \models \S\psi$. Hence
+% \[
+% x \in
+% \bigcap\{
+%    A \in P^{\expinc\phi}
+%    \mid
+%    \|\psi\|_{M^{\expinc\phi}} \subseteq A
+% \}
+% \quad (*)\]
+% Note that $\|\psi\|_{M^{\expinc\phi}} = \|[\expinc\phi]\psi\|_M$.
+% Now take $A \in P$ such that $\|[\expinc\phi]\psi\|_M
+% \subseteq A$. Since $P \subseteq P^{\expinc\phi}$, we get $x
+% \in A$ from $(*)$. Hence $M, x \models \S[\expinc\phi]\psi$.
+
+% Now suppose $M, x \models \A([\expinc\phi]\psi \limplies \phi)$.
+% Then $\|[\expinc\phi]\psi\|_M \subseteq \|\phi\|_M$, so
+% $\|\psi\|_{M^{\expinc\phi}} \subseteq \|\phi\|_M$. Since
+% $\|\phi\|_M \in P^{\expinc\phi}$, we get $x \in \|\phi\|_M$
+% from $(*)$, i.e. $M, x \models \phi$ as required.
+
+% ``$\limpliedby$": Suppose $M, x \models \S[\expinc\phi]\psi$
+% and $M, x \models \A([\expinc\phi]\psi \limplies \phi) \limplies
+% \phi$. Take $A \in P^{\expinc\phi}$ such that
+% $\|\psi\|_{M^{\expinc\phi}} \subseteq A$. Then
+% $\|[\expinc\phi]\psi\|_M \subseteq A$. By definition of
+% $P^{\expinc\phi}$, there is a collection $\mathcal{A}
+% \subseteq P \cup \{\|\phi\|_M\}$ such that $A =
+% \bigcap\mathcal{A}$. Let $B \in \mathcal{A}$. If $B \in P$,
+% then $\|[\expinc\phi]\psi\|_M \subseteq A \subseteq B$ and
+% $M, x \models \S[\expinc\phi]\psi$ give $x \in B$. Otherwise,
+% $B = \|\phi\|_M$. Hence $\|[\expinc\phi]\psi\|_M \subseteq
+% \|\phi\|_M$, so $M, x \models \A([\expinc\phi]\psi \limplies
+% \phi)$. By the second assumption, we get $M, x \models \phi$, i.e.
+% $x \in \|\phi\|_M = B$. We have now shown that $x \in
+% \bigcap\mathcal{A} = A$, and thus $M^{\expinc\phi}, x \models
+% \S\psi$ and $M, x \models [\expinc\phi]\S\psi$.
+
+% For the reduction axiom for $\E$, note that since
+% $M^{\expinc\phi} \in \Mint$ we have $M^{\expinc\phi}, x
+% \models E\psi$ iff $M^{\expinc\phi}, x \models \A(\S\psi \limplies
+% \psi)$. Using the reduction axioms for $\A$ and $\S$ (and the
+% reduction axiom for the implication, derived from those for $\neg$
+% and $\land$), we obtain the desired equivalence.
+
+% \end{proof}
+
+% Note that only the reduction axiom for $[\expinc\phi]\E\psi$ requires
+% $M^{\expinc\phi}$ to be closed under intersections.
+
+% \subsection{Sound Announcements}
+
+% In logics of public announcement \citep{plaza2007logics,van_Ditmarsch_2008},
+% the dynamic operator $[!\phi]$ represents a \emph{public} and \emph{truthful}
+% announcement of $\phi$; the formula $[!\phi]\psi$ is read as ``after
+% $\phi$ is announced, $\psi$ holds". Such an announcement changes
+% the information available in a model: after the announcement, all
+% $\neg\phi$ states are eliminated.
+
+% Since the premise of our work is to deal with non-expert sources, the
+% truthfulness requirement is too strong for an announcement operator in our
+% setting. Instead, we consider \emph{sound announcements}: the source may announce
+% $\phi$ whenever $\phi$ is sound at the current state. That is, the
+% source may announce any (possibly false) statement which is true up to their
+% lack of expertise.
+
+% Such an announcement is denoted syntactically by $[\sndann\phi]$. As with
+% the expertise increase operator, we define a model update operation
+% $M \mapsto M^{\sndann\phi}$.
+
+% It is clear how one should define new set of
+% states: since the announcement tells us $\phi$ is sound, we eliminate
+% unsound states by setting $X^{\sndann\phi} = \|\S\phi\|_M$. The valuation
+% is also straightforward, since announcements should not change the meaning of
+% atomic propositions.
+
+% What about the new expertise collection $P^{\sndann\phi}$? If we restrict
+% attention to models closed under intersections, as we did for expertise
+% increase, then a natural choice is to simply restrict each $A \in P$ to
+% $X^{\sndann\phi}$ by intersection. Since $X^{\sndann\phi} =
+% \|\S\phi\|_M = \bigcap\{B \in P \mid \|\phi\|_M \subseteq B\}$, by the closure
+% property we will have $P^{\sndann\phi} \subseteq P$, so that
+% announcements do not increase expertise. This assumption will also permit us to
+% find reduction axioms later on.
+
+% \begin{definition}
+% \label{def_sndann_model}
+% Let $M = (X, P, V)$ be an expertise model. For a formula $\phi$,
+% define the model $M^{\sndann\phi} = (X^{\sndann\phi}, P^{\sndann\phi},
+% V^{\sndann\phi})$ by setting
+% \[
+% \begin{aligned}
+%   X^{\sndann\phi} &= \|\S\phi\|_M \\
+%   P^{\sndann\phi} &= \{A \cap X^{\sndann\phi} \mid A \in P\} \\
+%   V^{\sndann\phi} &= V(p) \cap X^{\sndann\phi}
+% \end{aligned}\]
+% \end{definition}
+
+% Semantically, the truth condition for $[\sndann\phi]\psi$ is as follows.
+% \[
+% M, x \models [\sndann\phi]\psi
+%     \iff
+% M, x \models \S\phi \implies M^{\sndann\phi}, x \models \psi.
+% \]
+% Here we have the precondition that $\S\phi$ is true: if $\phi$ is unsound,
+% $[\sndann\phi]\psi$ is true for \emph{any} $\psi$. Note that a sound
+% announcement of $\phi$ can also be seen as a public (\emph{truthful})
+% announcement of $\S\phi$.
+
+% \begin{example}
+% \label{ex_dynamic}
+
+%     The report of the economist in \cref{ex_economist_motivation} can be
+%     modelled as $[\sndann(p \land \neg d)]$. Note that, with $M$ as in
+%     \cref{ex_economist_formalisation}, $\|\S(p \land \neg d)\|_M = \|p\|_M$.
+%     The updated model $M^{\sndann(p \land \neg d)}$ therefore consists only of
+%     the bottom half of $M$ as shown in \cref{fig_economist_example}. We see
+%     that $M, idp \models [\sndann(p \land \neg d)]d$ -- showing that even
+%     propositional announcements can ``fail" due to lack of expertise -- and $M
+%     \models [\sndann(p \land \neg d)]\A p$ -- showing that the parts of the
+%     report on which the sources does have expertise are \emph{always} true
+%     after their announcement.
+
+% \end{example}
+
+% As with the expertise increase operator, sound announcements remain sound for
+% purely propositional formulas $\alpha \in \cLzero$:
+% $[\sndann\alpha]\S\alpha$ is valid on $\Mint$. This is
+% not true for general formulas $\phi \in \cL$ which may refer to expertise
+% itself. For example, in the model $M = (X, P, V) \in \Mint$ given by
+% $X = \{1,2,3,4\}$, $P = \{\emptyset, X, \{1\}, \{2\}, \{1, 2,
+% 3\}\}$, $V(p) = \{1, 2\}$ and $V(q) = \{2, 4\}$, with $\phi =
+% p \land \neg\E q$ we have $M, 1 \not\models [\sndann\phi]\S\phi$.
+
+% The following reduction axioms allow formulas involving announcements to be
+% expressed in the static language.
+
+% \begin{proposition}
+% \label{prop_sndann_reduction_axioms}
+% The following formulas are valid on $\M$:
+% \[
+% \begin{aligned}
+%   [\sndann\phi]p &\quad\liff\quad
+%       \S\phi \limplies p \\
+%   [\sndann\phi](\psi \land \theta) &\quad\liff\quad
+%       [\sndann\phi]\psi \land [\sndann\phi]\theta \\
+%   [\sndann\phi]\neg\psi &\quad\liff\quad
+%       \S\phi \limplies \neg[\sndann\phi]\psi \\
+%   [\sndann\phi]\A\psi &\quad\liff\quad
+%       \S\phi \limplies \A[\sndann\phi]\psi \\
+%   [\sndann\phi]\S\psi &\quad\liff\quad
+%       \S\phi \limplies \S(\S\phi \land [\sndann\phi]\psi)
+% \end{aligned}\]
+% and the following is valid on $\Mint$:
+% \[
+% [\sndann\phi]\E\psi \quad\liff\quad
+%     \S\phi \limplies \E(\S\phi \land [\sndann\phi]\psi)\]
+% \end{proposition}
+% \begin{proof}
+% The cases of atomic propositions, propositional connectives and the
+% universal modality $\A$ are straightforward.
+
+% For the reduction axiom for $\S$, first note that
+% $\|\psi\|_{M^{\sndann\phi}} = \|\S\phi \land
+% [\sndann\phi]\psi\|_M$. We need to show that $M, x \models
+% [\sndann\phi]\S\psi$ iff $M, x \models \S\phi \limplies \S(\S\phi
+% \land [\sndann\phi]\psi)$. If $M, x \not\models \S\phi$ this is
+% clear. Otherwise $x \in \|\S\phi\|_M$, and we have
+% \[
+% \begin{aligned}
+%    M, x \models [\sndann\phi]\S\psi
+%    &\iff M^{\sndann\phi}, x \models \S\psi \\
+%    &\iff \forall B \in P^{\sndann\phi}: \|\psi\|_{M^{\sndann\phi}}
+%    \subseteq B \implies x \in B \\
+%    &\iff \forall A \in P: \|\S\phi \land
+%        [\sndann\phi]\psi\|_M \subseteq A \cap
+%        \|\S\phi\|_M \implies x \in A \cap \|\S\phi\|_M \\
+%    &\iff \forall A \in P: \|\S\phi \land
+%        [\sndann\phi]\psi\|_M \subseteq A \implies x \in A \\
+%    &\iff M, x \models \S(\S\phi \land [\sndann\phi]\psi)
+% \end{aligned}\]
+% and the result follows.
+
+% For the $\E$ reduction axiom, take $M \in \Mint$. Again,
+% suppose without loss of generality that $x \in \|\S\phi\|_M$. Then
+% we have
+% \[
+% \begin{aligned}
+%    M, x \models [\sndann\phi]\E\psi
+%    &\iff M^{\sndann\phi}, x \models \E\psi \\
+%    &\iff \|\psi\|_{M^{\sndann\phi}} \in P^{\sndann\phi} \\
+%    &\iff \|\S\phi \land [\sndann\phi]\psi\|_M \in P^{\sndann\phi} \\
+%    &\iff \|\S\phi \land [\sndann\phi]\psi\|_M \in P \\
+%    &\iff M, x \models \E(\S\phi \land [\sndann\phi]\psi)
+% \end{aligned}\]
+% where the forwards direction of the penultimate equivalence holds since
+% $P^{\sndann\phi} \subseteq P$ when $M$ is closed under
+% intersections, and the backwards direction holds since $\|\S\phi
+% \land [\sndann\phi]\psi\|_M \subseteq \|\S\phi\|_M = X^{\sndann\phi}$. It
+% follows that $M, x \models [\sndann\phi]\E\psi$ iff $M, x
+% \models \S\phi \limplies \E(\S\phi \land [\sndann\phi]\psi)$, as
+% required.
+
+% \end{proof}
+
+% To conclude, we note some interesting validities involving the dynamic
+% operators and their interaction.
+
+% \begin{proposition}
+% \label{prop_dynamic_validities}
+% For any $\alpha, \beta \in \cLzero$, the following formulas are valid
+% on $\Mint$:
+
+% \begin{enumerate}\small
+%     \item\label{item_exp_sndann} $\E\alpha \liff \A[\sndann\alpha]\alpha$
+
+%     \item\label{item_weakening_sndann} $\A(\alpha \limplies \beta) \limplies
+%           [\expinc\beta][\sndann\alpha]\beta$
+
+%   \item\label{item_weakening_sndann_eq} $[\expinc\alpha][\sndann\alpha]\alpha$
+
+%     \end{enumerate}
+% \end{proposition}
+
+% In words, \refitem{item_exp_sndann} says that expertise on a propositional
+% formula $\alpha$ is equivalent to the guarantee that $\alpha$ is true whenever
+% it is soundly announced. \refitem{item_weakening_sndann} is essentially a
+% reformulation of \cref{prop_validities} \refitem{item_weakening}; it says that
+% if $\beta$ is logically weaker than $\alpha$, gaining expertise on $\beta$
+% ensures that $\beta$ is at least true after a sound announcement of the
+% stronger formula $\alpha$.  \refitem{item_weakening_sndann_eq} is the special
+% case of \refitem{item_weakening_sndann} with $\beta = \alpha$, which says that
+% $\alpha$ is true following a sound announcement after the sources gains
+% expertise on $\alpha$.
+
+\section{Conclusion}
+\label{sec_conclusion}
+
+This paper presented a simple modal logic framework to reason about the
+expertise of information sources and soundness of information, generalising the
+framework of \citet{singleton2021logic}. We investigated both conceptual and
+technical issues, establishing several completeness for various classes of
+expertise models. The connection with epistemic logic showed how expertise and
+soundness may be given precise interpretations in terms of knowledge; if
+expertise is closed under intersections and unions this results in S4
+knowledge, and closure under complements strengthens this to S5. Finally, we
+extended the framework to handle multiple sources and studied notions of
+collective expertise.
+
+There are many directions for future work.
+%
+First, our approach allows one to reason about soundness of information
+only if the extent of a source's expertise is known up-front. In practical
+situations it is more likely that one has to \emph{estimate} a source's
+expertise, e.g. on the basis of previous reports
+\citep{hunter_building_2021,dastani2004inferring}; such approaches could be
+combined with our logical framework in future work.
+
+Expertise is also not static: it may change over time as sources learn and
+acquire new evidence. To model this one could introduce \emph{dynamic expertise
+operators}, as in Dynamic Epistemic Logic. One
+source of inspiration here is \emph{dynamic evidence logics}
+~\citep{van2011dynamic,vanbenthem2014106}, which study how evidence (and
+beliefs formed on the basis of evidence) change over time. Such logics also use
+neighbourhood semantics to interpret evidence modalities, which is technically
+(and possibly conceptually) similar to our semantics for expertise.
+
+Finally, there is scope to study the interaction between interaction between
+expertise and \emph{trust}, which has been extensively studied from a logical
+perspective~\citep{booth_trust_2018,Liau_2003,lorini2014trust,herzig2010logic}.
+Intuitively, source $i$ should trust $j$ on $\phi$ if $i$ believes that $j$ has
+expertise on $\phi$. ``Belief in expertise" in this manner is not particularly
+meaningful in the current framework, since $\E_j\phi$ either holds everywhere
+or nowhere. Future work could extend the semantics to allow the expertise
+collection $P_j$ to vary between states, so as to model one source's
+uncertainty about the expertise of another.

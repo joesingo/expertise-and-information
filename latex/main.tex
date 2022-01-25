@@ -1,0 +1,74 @@
+\documentclass[sn-apa]{sn-jnl}%
+\jyear{2022}%
+
+\theoremstyle{thmstyleone}%
+\newtheorem{theorem}{Theorem}%
+\newtheorem{proposition}{Proposition}%
+\newtheorem{lemma}{Lemma}%
+\newtheorem{corollary}{Corollary}%
+\newtheorem{claim}{Claim}%
+
+\theoremstyle{thmstyletwo}%
+\newtheorem{example}{Example}%
+\newtheorem{remark}{Remark}%
+
+\theoremstyle{thmstylethree}%
+\newtheorem{definition}{Definition}%
+
+\raggedbottom
+
+% % the sn-jnl class messes with "|" due to \usepackage{program}, I think (see
+% discussion here:
+% https://tex.stackexchange.com/questions/615012/springer-nature-latex-template-and-tikz-issue)
+%
+% the following seems to fix the issue
+\catcode`\|=12\relax
+
+% custom package imports
+\usepackage[capitalise]{cleveref}
+\usepackage{tikz}
+
+% custom macros
+\input{macros}
+
+% cleveref cannot deduce the plural form for the "claim" environment, so give
+% it explicity
+\crefname{claim}{Claim}{Claims}
+\Crefname{claim}{Claim}{Claims}
+
+\begin{document}
+
+\newcommand{\papertitle}{Expertise and knowledge: a modal logic perspective}
+
+\title[\papertitle]{\papertitle}
+
+\author[1]{\fnm{Anonymous} \sur{Author}}
+\affil[1]{
+    \orgname{Anonymous Institution}
+}
+% \author[1]{\fnm{Joseph} \sur{Singleton}}\email{singletonj1@cardiff.ac.uk}
+
+% \author[1]{\fnm{Richard} \sur{Booth}}\email{boothr2@cardiff.ac.uk}
+
+% \affil[1]{
+%     \orgdiv{School of Computer Science and Informatics},
+%     \orgname{Cardiff University}
+% }
+
+\abstract{
+    \input{abstract}
+}
+
+% \keywords{keyword1, Keyword2, Keyword3, Keyword4}
+
+\maketitle
+
+\input{body}
+
+\begin{appendices}
+    \input{appendix}
+\end{appendices}
+
+\bibliography{references}%
+
+\end{document}

@@ -1,0 +1,302 @@
+import basic
+
+-- formulas of the dynamic extension
+inductive DFormula : Type
+  -- base language
+  | falsum : DFormula
+  | atom : ℕ -> DFormula
+  | and : DFormula -> DFormula -> DFormula
+  | neg : DFormula -> DFormula
+  | implies : DFormula -> DFormula -> DFormula
+  | iff : DFormula -> DFormula -> DFormula
+  | exp : DFormula -> DFormula
+  | sound : DFormula -> DFormula
+  | univ : DFormula -> DFormula
+  -- dynamic operators
+  | exp_inc : DFormula -> DFormula -> DFormula
+  | announce : DFormula -> DFormula -> DFormula
+
+-- infix notation
+notation `⊥` := DFormula.falsum
+notation `P` n := DFormula.atom n
+notation φ `&` ψ := DFormula.and φ ψ
+notation `#` φ := DFormula.neg φ
+notation φ `⇒` ψ := DFormula.implies φ ψ
+notation φ `⇔` ψ := DFormula.iff φ ψ
+notation `E` φ := DFormula.exp φ
+notation `S` φ := DFormula.sound φ
+notation `A` φ := DFormula.univ φ
+notation `[+` φ `]` := DFormula.exp_inc φ
+notation `[?` φ `]` := DFormula.announce φ
+
+variable {α : Type}
+
+-- for a collection of sets u, return its closure under pred, i.e. the
+-- intersection of all supersets of u satisfying pred
+@[simp] def closure (u : set (set α)) (pred : set (set α) -> Prop) : set (set α) :=
+  ⋂₀{v | u ⊆ v ∧ pred v}
+
+def cl_intersections (u : set (set α)) := ∀ aa, aa ⊆ u -> ⋂₀aa ∈ u
+
+@[simp] def exp_inc_transform (m : Model α) (b : set α) : Model α :=
+  let exp : set (set α) := closure (m.has_expertise ∪ {b}) cl_intersections
+  in ⟨⟨exp⟩, m.val⟩
+
+def lift_set {s : set α} (t : set ↥s) : set α := {x : α | ∃ x' ∈ t, ↑x' = x}
+
+-- sound announcement model transform
+@[simp] def announcement_transform (m : Model α) (b : set α)
+  : Model ⋂₀{a | m.has_expertise a ∧ b ⊆ a} :=
+  let c := ⋂₀{a | m.has_expertise a ∧ b ⊆ a} in
+  let exp : set c -> Prop :=
+    λa, ∃ a' : set α, m.has_expertise a' ∧ lift_set a = a' ∩ c in
+  let val : ℕ -> c -> Prop := λn x, m.val n x in
+  ⟨⟨exp⟩, val⟩
+
+-- semantics
+@[simp] def dsat : Π {α : Type}, Model α -> α -> DFormula -> Prop
+  | α m x ⊥  := false
+  | α m x (P n)   := m.val n x
+  | α m x (φ & ψ) := (dsat m x φ) ∧ (dsat m x ψ)
+  | α m x (# φ)   := ¬(dsat m x φ)
+  | α m x (φ ⇒ ψ) := (dsat m x φ) -> (dsat m x ψ)
+  | α m x (φ ⇔ ψ) := (dsat m x φ) <-> (dsat m x ψ)
+  | α m x (E φ)   := m.has_expertise {y | dsat m y φ}
+  | α m x (S φ)   := ∀ a, m.has_expertise a -> {y | dsat m y φ} ⊆ a -> x ∈ a
+  | α m x (A φ)   := ∀ y : α, dsat m y φ
+  | α m x ([+φ]ψ) := dsat (exp_inc_transform m {y | dsat m y φ}) x ψ
+  | α m x ([?φ]ψ) :=
+    let b := {y | dsat m y φ} in
+    let c := ⋂₀{a | m.has_expertise a ∧ b ⊆ a} in
+    x ∈ c -> dsat (announcement_transform m b) ⟨x, ‹x ∈ c›⟩ ψ
+
+-- embedding of the static language in the dynamic language
+@[simp] def static_to_dynamic : Formula -> DFormula
+  | ⊥       := ⊥
+  | (P n)   := P n
+  | (φ & ψ) := static_to_dynamic φ & static_to_dynamic ψ
+  | (# φ)   := # (static_to_dynamic φ)
+  | (φ ⇒ ψ) := static_to_dynamic φ ⇒ static_to_dynamic ψ
+  | (φ ⇔ ψ) := static_to_dynamic φ ⇔ static_to_dynamic ψ
+  | (E φ)   := E (static_to_dynamic φ)
+  | (S φ)   := S (static_to_dynamic φ)
+  | (A φ)   := A (static_to_dynamic φ)
+
+-- propositional language
+inductive PropFormula : Type
+  | falsum : PropFormula
+  | atom : ℕ -> PropFormula
+  | and : PropFormula -> PropFormula -> PropFormula
+  | neg : PropFormula -> PropFormula
+  | implies : PropFormula -> PropFormula -> PropFormula
+  | iff : PropFormula -> PropFormula -> PropFormula
+
+-- infix notation
+notation `⊥` := PropFormula.falsum
+notation `P` n := PropFormula.atom n
+notation φ `&` ψ := PropFormula.and φ ψ
+notation `#` φ := PropFormula.neg φ
+notation φ `⇒` ψ := PropFormula.implies φ ψ
+notation φ `⇔` ψ := PropFormula.iff φ ψ
+
+-- embedding of the propositional language in the dynamic language
+@[simp] def prop_to_dynamic : PropFormula -> DFormula
+  | ⊥       := ⊥
+  | (P n)   := P n
+  | (φ & ψ) := prop_to_dynamic φ & prop_to_dynamic ψ
+  | (# φ)   := # (prop_to_dynamic φ)
+  | (φ ⇒ ψ) := prop_to_dynamic φ ⇒ prop_to_dynamic ψ
+  | (φ ⇔ ψ) := prop_to_dynamic φ ⇔ prop_to_dynamic ψ
+
+namespace exp_inc_reduction_axioms
+
+variables {m : Model α} {x : α} {φ ψ θ: DFormula} {n : ℕ}
+
+lemma atoms : dsat m x ([+φ](P n)) <-> dsat m x (P n) := by simp
+
+lemma conjunctions : dsat m x ([+φ](ψ & θ)) <-> dsat m x ([+φ]ψ & [+φ]θ) := by simp
+
+lemma negations : dsat m x ([+φ](#ψ)) <-> dsat m x (#([+φ]ψ)) := by simp
+
+lemma univ : dsat m x ([+φ](A ψ)) <-> dsat m x (A([+φ]ψ)) := by simp
+
+lemma soundness : dsat m x ([+φ](S φ)) <->
+  dsat m x ((S ([+φ]ψ)) & (A((([+φ]ψ) ⇒ φ) ⇒ φ))) :=
+begin
+  apply iff.intro,
+    intro h,
+    simp,
+    apply and.intro,
+      intros a hexp hss,
+      simp at h,
+      let q := h a,
+      sorry,
+
+      sorry,
+
+    sorry,
+end
+
+lemma exp : dsat m x ([+φ](E φ)) <->
+  dsat m x((A ((S ([+φ]ψ)) & ((A (([+φ]ψ) ⇒ φ)) ⇒ φ))) ⇒ φ) := sorry
+
+lemma reduction : ∃ ε : Formula,
+  ∀ m : Model α, ∀ x : α, dsat m x ([+φ]ψ) <-> dsat m x (static_to_dynamic ε) :=
+begin
+  induction ψ,
+  case falsum
+  {
+    apply exists.intro (⊥ : Formula),
+    intros,
+    simp
+  },
+  case and : θ1 θ2 ih1 ih2
+  {
+    apply exists.elim ih1,
+    intros ε1 h1,
+    apply exists.elim ih2,
+    intros ε2 h2,
+    apply exists.intro (ε1 & ε2),
+    intros m x,
+    sorry
+  },
+  sorry,
+  sorry,
+  sorry,
+  sorry,
+  sorry,
+  sorry,
+  sorry,
+  sorry,
+  sorry,
+end
+
+end exp_inc_reduction_axioms
+
+namespace announcement_reduction_axioms
+
+  variables {m : Model α} {x : α} {φ ψ θ: DFormula} {n : ℕ}
+
+  lemma success : ∀ φ : PropFormula,
+    dsat m x ([?(prop_to_dynamic φ)] (prop_to_dynamic φ)) := sorry
+
+end announcement_reduction_axioms
+
+theorem reduction : ∀ φ : DFormula, ∃ ψ : Formula,
+  ∀ m : Model α, ∀ x : α, dsat m x φ <-> dsat m x (static_to_dynamic ψ) :=
+begin
+  intro φ,
+  induction φ,
+  case falsum
+  {
+    apply exists.intro (⊥ : Formula),
+    intros m x,
+    simp
+  },
+  case atom : n
+  {
+    apply exists.intro (P n : Formula),
+    intros m x,
+    simp
+  },
+  case and : φ1 φ2 ih1 ih2
+  {
+    apply exists.elim ih1,
+    intros ψ1 h1,
+    apply exists.elim ih2,
+    intros ψ2 h2,
+    apply exists.intro (ψ1 & ψ2),
+    intros m x,
+    simp,
+    exact and_congr (h1 m x) (h2 m x)
+  },
+  case neg : φ ih
+  {
+    apply exists.elim ih,
+    intros ψ h,
+    apply exists.intro (# ψ),
+    intros m x,
+    exact not_congr (h m x)
+  },
+  case implies : φ1 φ2 ih1 ih2
+  {
+    apply exists.elim ih1,
+    intros ψ1 h1,
+    apply exists.elim ih2,
+    intros ψ2 h2,
+    apply exists.intro (ψ1 ⇒ ψ2),
+    intros m x,
+    simp,
+    exact imp_congr (h1 m x) (h2 m x)
+  },
+  case iff : φ1 φ2 ih1 ih2
+  {
+    apply exists.elim ih1,
+    intros ψ1 h1,
+    apply exists.elim ih2,
+    intros ψ2 h2,
+    apply exists.intro (ψ1 ⇔ ψ2),
+    intros m x,
+    simp,
+    exact iff_congr (h1 m x) (h2 m x)
+  },
+  case exp : φ ih
+  {
+    apply exists.elim ih,
+    intros ψ h,
+    apply exists.intro (E ψ),
+    intros m x,
+    simp,
+    apply eq.to_iff,
+    apply congr_arg,
+    apply set.ext,
+    intros y,
+    exact h m y
+  },
+  case sound : φ ih
+  {
+    apply exists.elim ih,
+    intros ψ h,
+    apply exists.intro (S ψ),
+    intros m x,
+    simp,
+    apply forall_congr,
+    intros a,
+    apply imp_congr (iff.refl _),
+    refine imp_congr _ (iff.refl _),
+    have : ∀ {s t u : set α}, s = t -> (s ⊆ u <-> t ⊆ u),
+    {
+      intros s t u heq,
+      rw heq
+    },
+    apply this,
+    apply set.ext,
+    intro y,
+    exact h m y
+  },
+  case univ : φ ih
+  {
+    apply exists.elim ih,
+    intros ψ h,
+    apply exists.intro (A ψ),
+    intros m x,
+    simp,
+    apply forall_congr,
+    intro y,
+    exact h m y
+  },
+  case exp_inc : φ1 φ2 ih1 ih2
+  {
+    apply exists.elim ih1,
+    intros ψ1 h1,
+    apply exists.elim ih2,
+    intros ψ2 h2,
+    let q := @exp_inc_reduction_axioms.reduction α φ1 φ2,
+    apply exists.elim q,
+    intros ε hε,
+    apply exists.intro ε,
+    intros m x,
+    exact hε m x
+  },
+  sorry,
+end
