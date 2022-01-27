@@ -33,11 +33,16 @@ source's epistemic state.
 
 It is \emph{sound} for a source to report $\phi$ if $\phi$ is true \emph{up to
 lack of expertise}: if $\phi$ is logically weakened to a proposition $\psi$ on
-which the source has expertise, then $\psi$ must be true. This formalises the
-idea of ``filtering out" parts of a statement within a source's expertise: we
-discard information by going from $\phi$ to the weaker statement $\psi$, and
-obtain the guarantee that at least $\psi$ holds, even if $\phi$ does not.
+which the source has expertise, then $\psi$ must be true. That is, the
+consequences of $\phi$ on which the source has expertise are true.
 %
+This formalises the idea of ``filtering out" parts of a statement within a
+source's expertise. For example, suppose $\phi = p \land q$, and the source has
+expertise on $p$ but not $q$. Supposing $p$ is true but $q$ is false, $\phi$ is
+false. However, if we discard information by ignoring $q$ (on which the source
+has no expertise), we obtain the weaker formula $p$, which is true. Thus $p
+\land q$ is \emph{false}, but \emph{sound} for the source to report.
+
 In terms of refutation, $\phi$ is sound if the source cannot refute $\neg\phi$.
 That is, either $\phi$ is in fact true, or the source does not possess
 sufficient expertise to rule out $\phi$.
@@ -107,19 +112,22 @@ Before the formal definitions we give an example to illustrate the notions of
     false, it is true if one \emph{ignores the parts on which the economist has
     no expertise} (namely, $\neg d$); in doing so we obtain $p$, which is true.
     The report therefore carries \emph{some} true information, even though it
-    is false. We say $p \land \neg d$ is \emph{sound} in this case.
+    is false. We say $p \land \neg d$ is \emph{sound} for the economist in this
+    case.
 
 \end{example}
 
 \paragraph{Syntax}
 
-Let $\Prop$ be a countable set of atomic propositions. Our language
-includes modal operators to express expertise and soundness statements for a
-single source. Formally, define $\cL$ by the following grammar:
+Let $\Prop$ be a countable set of atomic propositions.
+%
+To start with, we consider a single information source. Our language $\cL$
+includes modal operators to express expertise and soundness statements for this
+source, and is defined by the following grammar:
 \[
 \phi ::=
  p \mid
- \phi \land \psi \mid
+ \phi \land \phi \mid
  \neg\phi \mid
  \E\phi \mid
  \S\phi \mid
@@ -140,7 +148,8 @@ On the semantic side, we use the notion of an \emph{expertise model}.
 \begin{definition}
     \label{def_expertise_model}
 
-    An \emph{expertise model} is a triple $M = (X, P, V)$, where $X$ is a set
+    An \emph{expertise model} (hereafter, just \emph{model})
+    is a triple $M = (X, P, V)$, where $X$ is a set
     of states, $P \subseteq 2^X$ is a collection of subsets of $X$, and $V:
     \Prop \to 2^X$ is a valuation function. An \emph{expertise frame} is a pair
     $F = (X, P)$.  The class of all models is denoted by $\M$.
@@ -189,7 +198,7 @@ source has expertise must be true: if $A \in P$ (i.e. the source has
 expertise on $A$) and $A$ contains all $\phi$ states, then
 $x \in A$. In terms of refutation, $\S\phi$ holds iff there is no
 expertise set $A$, false at the actual state $x$, which allows the
-source rule out $\phi$.
+source to rule out $\phi$.
 
 Our truth conditions for expertise and soundness also have topological
 interpretations, if one views $P$ as the collection of closed sets of a
