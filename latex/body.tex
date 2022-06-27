@@ -40,13 +40,16 @@ This formalises the idea of ``filtering out" parts of a statement within a
 source's expertise. For example, suppose $\phi = p \land q$, and the source has
 expertise on $p$ but not $q$. Supposing $p$ is true but $q$ is false, $\phi$ is
 false. However, if we discard information by ignoring $q$ (on which the source
-has no expertise), we obtain the weaker formula $p$, which is true. Thus $p
-\land q$ is \emph{false}, but \emph{sound} for the source to report.
+has no expertise), we obtain the weaker formula $p$, on which the source
+\emph{does} have expertise, and which is true. If this holds for all possible
+ways to weaken $p \land q$ (this is the case, for instance, if the source does
+not have expertise on any statement strictly stronger than $p$), then $p \land
+q$ is \emph{false} but \emph{sound} for the source to report.
 
 In terms of refutation, $\phi$ is sound if the source cannot refute $\neg\phi$.
 That is, either $\phi$ is in fact true, or the source does not possess
 sufficient expertise to rule out $\phi$.
-
+%
 This informal picture of expertise already suggests a close connection between
 expertise, soundness and \emph{knowledge}. Indeed, we will see that, under
 certain conditions, expertise can be equivalently interpreted in terms of
@@ -60,7 +63,8 @@ is sufficient broadness of expertise among the government so that this is the
 case \emph{collectively} (i.e. if expertise is ``pooled together"). Such
 collective expertise may even go beyond the sum of its parts: if $A$ is an
 expert on policy area $X$ and $B$ is an expert on how $X$ affects some other
-area $Y$, then together $A$ and $B$ will have expertise on $Y$.
+area $Y$, then together $A$ and $B$ will have expertise on $Y$. \todo{Possibly
+rework this example: reviewer did not like it.}
 
 Towards defining collective expertise we will again turn to (multi-agent)
 epistemic logic, borrowing from the well-known notions of \emph{distributed}
@@ -89,6 +93,8 @@ or only sketched, the full details can be found in the
 appendix.\footnote{\url{https://github.com/anonymous-logician/expertise/blob/master/latex/appendix.pdf}}
 Several of the main proofs have also been formalised with the Lean theorem
 prover.\footnote{\url{https://github.com/anonymous-logician/expertise}}
+
+\todo{Introduction ``could do a better job at motivating the paper''. But how?}
 
 \section{Expertise and Soundness}
 \label{sec_expertise_and_soundness}
@@ -187,18 +193,17 @@ valid. For a set $\Gamma \subseteq \cL$, write $\Gamma \models
 \phi$ iff for all models $M$ and states $x$, if $M, x \models
 \psi$ for all $\psi \in \Gamma$ then $M, x \models \phi$.
 
-The clauses for atomic propositions and propositional
-connectives are standard. For expertise formulas, we have that $\E\phi$
-holds exactly when the set of states where $\phi$ is true is an element
-of $P$. Expertise is thus a special case of the \emph{neighbourhood semantics}
-\citep{pacuit2017neighborhood}, where each point $x \in X$ has the same
-set of neighbourhoods. The clause for soundness reflects the intuition that
-$\phi$ is sound exactly when all logically weaker formulas on which the
-source has expertise must be true: if $A \in P$ (i.e. the source has
-expertise on $A$) and $A$ contains all $\phi$ states, then
-$x \in A$. In terms of refutation, $\S\phi$ holds iff there is no
-expertise set $A$, false at the actual state $x$, which allows the
-source to rule out $\phi$.
+The clauses for atomic propositions and propositional connectives are standard.
+For expertise formulas, we have that $\E\phi$ holds exactly when the set of
+states where $\phi$ is true is an element of $P$. Expertise is thus a special
+case of the \emph{neighbourhood semantics}
+\citep{Scott1970,montague1970universal,pacuit2017neighborhood}, where each
+point $x \in X$ has the same set of neighbourhoods. The clause for soundness
+reflects the intuition that $\phi$ is sound exactly when all logically weaker
+formulas on which the source has expertise must be true: if $A \in P$ (i.e. the
+source has expertise on $A$) and $A$ contains all $\phi$ states, then $x \in
+A$. In terms of refutation, $\S\phi$ holds iff there is no expertise set $A$,
+false at the actual state $x$, which allows the source to rule out $\phi$.
 
 Our truth conditions for expertise and soundness also have topological
 interpretations, if one views $P$ as the collection of closed sets of a
@@ -239,7 +244,7 @@ iff $\phi$ holds at all states $y \in X$.
 
     To formalise \cref{ex_economist_motivation}, consider the model $M = (X, P,
     V)$ shown in \cref{fig_economist_example}, where $X =
-    2^{\{i,p,d\}}$, $P = \{\emptyset, X, \{ipd,pd,ip,p\},
+    2^{\{i,p,d\}}$, $P = \{\{ipd,pd,ip,p\},
     \{id,d,i,\emptyset\}\}$ (indicated by the solid rectangles; sets in $X$ are
     written as strings for brevity), and $V(q) =
     \{S \mid q \in S\}$. Then we have $M \models \E p$ but $M \not\models \E
@@ -286,9 +291,7 @@ iff $\phi$ holds at all states $y \in X$.
     \end{tikzpicture}
     \caption{
         Expertise model from \cref{ex_economist_formalisation}, which
-        formalises the situation described in \cref{ex_economist_motivation}.
-        Note that $\emptyset, X \in P$, but for clarity this is not indicated
-        in the diagram.
+        formalises \cref{ex_economist_motivation}.
     }
     \label{fig_economist_example}
 \end{figure}
@@ -627,7 +630,7 @@ as for expertise models, and
     \forall y \in X: xRy \implies M^*, y \models \phi.
 \]
 As is standard, $R$ is interpreted as an \emph{epistemic accessibility relation}:
-$xRy$ means that the sources considers $y$ possible if the ``actual"
+$xRy$ means that the source considers $y$ possible if the ``actual"
 state of the world is $x$. We will be interested in the logics of S4 and
 S5, which are axiomatised by \textbf{KT4} and \textbf{KT5}, respectively:
 
@@ -678,7 +681,7 @@ sets $P$ to a binary relation.
     For a set $X$ and $P \subseteq 2^X$, let $R_P$ be the binary relation on
     $X$ given by
     \[
-        x{R_P}y \iff \forall A \in P: y \in A \implies x \in A
+        x{R_P}y \iff \forall A \in P: (y \in A \implies x \in A)
     \]
 \end{definition}
 
@@ -1030,14 +1033,14 @@ then the same holds for $\S\psi$ and $\S\phi$. First, $\sL$ is sound.
                      & $\EA$ \\
                  $\A(\phi \liff \psi) \limplies (\E\phi \liff \E\psi)$
                      & $\reE$ \\
-                 $\A(\phi \limplies \psi) \limplies (S\phi \land E\psi \limplies \psi)$
+                 $\A(\phi \limplies \psi) \limplies (\S\phi \land \E\psi \limplies \psi)$
                      & $\weakeningE$ \\
                  \midrule
                  $\phi \limplies \S\phi$
                      & $\Tsoundness$ \\
                  $\S\S\phi \limplies \S\phi$
                      & $\foursoundness$ \\
-                 $\A(\phi \limplies \psi) \limplies (S\phi \limplies \S\psi)$
+                 $\A(\phi \limplies \psi) \limplies (\S\phi \limplies \S\psi)$
                      & $\weakeningS$ \\
                  \midrule
                  $\A(\phi \limplies \psi) \limplies (\A\phi \limplies \A\psi)$
@@ -1334,16 +1337,18 @@ We have a version of the truth lemma for the model $\widehat{M}_\Sigma =
     $\|\phi\|_{\widehat{M}_\Sigma} \in \widehat{P}_\Sigma^0$. Hence
     $\widehat{M}_\Sigma, (\Gamma, t) \models \E\phi$.
 
-    Now suppose $\widehat{M}_\Sigma, (\Gamma, t) \models \E\phi$.  Then by the
-    induction hypothesis, $|\phi|_\Sigma \times \R \in \widehat{P}_\Sigma$.
-    Since $\widehat{P}_\Sigma^1$ does not contain any sets of this form, we
-    must have $|\phi|_\Sigma \times \R \in \widehat{P}_\Sigma^0$. Therefore
-    there is some $\psi$ such that $\E\psi \in \Sigma$ and $|\phi|_\Sigma
-    \times \R = |\psi|_\Sigma \times \R$.  It follows that $|\phi|_\Sigma =
-    |\psi|_\Sigma$, and \cref{lemma_xsigma_properties} then gives $\A(\phi
-    \liff \psi) \in \Sigma$. By \cref{cor_xsigma_agree_on_ae}, we have $\E\psi
-    \in \Gamma$ and $\A(\phi \liff \psi) \in \Gamma$ too. By $\reE$ we get
-    $\E\phi \in \Gamma$ as required.
+    Now suppose $\widehat{M}_\Sigma, (\Gamma, t) \models \E\phi$. Then
+    $\|\phi\|_{\widehat{M}_\Sigma} \in \widehat{P}_\Sigma$. By the induction
+    hypothesis, $\|\phi\|_{\widehat{M}_\Sigma} = |\phi|_\Sigma \times \R$.
+    Hence $|\phi|_\Sigma \times \R \in \widehat{P}_\Sigma$.  Since
+    $\widehat{P}_\Sigma^1$ does not contain any sets of this form, we must have
+    $|\phi|_\Sigma \times \R \in \widehat{P}_\Sigma^0$. Therefore there is some
+    $\psi$ such that $\E\psi \in \Sigma$ and $|\phi|_\Sigma \times \R =
+    |\psi|_\Sigma \times \R$.  It follows that $|\phi|_\Sigma = |\psi|_\Sigma$,
+    and \cref{lemma_xsigma_properties} then gives $\A(\phi \liff \psi) \in
+    \Sigma$. By \cref{cor_xsigma_agree_on_ae}, we have $\E\psi \in \Gamma$ and
+    $\A(\phi \liff \psi) \in \Gamma$ too. By $\reE$ we get $\E\phi \in \Gamma$
+    as required.
 
     ($\S$): First suppose $\S\phi \in \Gamma$. Take $A \in \widehat{P}_\Sigma$
     such that $\|\phi\|_{\widehat{M}_\Sigma} \subseteq A$. By the induction
@@ -1392,12 +1397,10 @@ We have a version of the truth lemma for the model $\widehat{M}_\Sigma =
       \mathcal{D} = \{(\Delta_n, t_n)\}_{n \in N} \cup \{(\Gamma,
       t)\}.
     \]
-    Since $N$ is at most countable, so too is $\mathcal{D}$.  Since
+    Since $N$ is at most countable, so is $\mathcal{D}$.  Since
     $\R$ is uncountable, there is some $s \in \R$ such that $(\Gamma,
-    s) \notin \mathcal{D}$.\footnote{If not, then $s \mapsto
-    (\Gamma, s)$ is an injective mapping $\R \to \mathcal{D}$, which
-    would imply $\R$ is countable.} We necessarily have $s \ne t$. We
-    are ready to define $A$: set
+    s) \notin \mathcal{D}$. We necessarily have $s \ne t$. We are ready to
+    define $A$: set
     \[
       A = (|\S\phi|_\Sigma \times \R) \cup \{(\Gamma, s)\}.
     \]
@@ -1505,7 +1508,10 @@ $\Mint$.
     \refitem{item_frame_condition_intersections}.
 
     For completeness, we take a similar, but simplified, approach to the
-    general case. Let $X_{\sLint}$ be the set of maximally $\sLint$-consistent
+    general case. For brevity we sketch the argument here, with full details
+    deferred to the appendix.
+    %
+    Let $X_{\sLint}$ be the set of maximally $\sLint$-consistent
     sets, and let $R$ be defined as before (but now on $X_{\sLint}$).
     %
     Overriding earlier terminology, for any fixed $\Sigma \in X_{\sLint}$ say
@@ -1543,14 +1549,14 @@ $\Mint$.
 
 Now we add finite unions to the mix. It was shown in
 \cref{prop_finite_unions_frame_condition} that within class $\Mint$, the
-\textbf{K} axiom for the dual operator $\hat\S$ characterises closure under
-finite unions. Note that any frame $(X, P)$ closed under intersections and
-finite unions is a topological space,\footnote{By the convention that the empty
-intersection is the whole space $X$ and the empty union is $\emptyset$, we have
-$X, \emptyset \in P$ too.} where $P$ is the set of \emph{closed} sets. Write
-$\Mtop = \Mint \cap \Mfunions$ for the class of models over such frames. We
-obtain an axiomatisation of $\Mtop$ by adding \textbf{K} for $\hat\S$ and a
-bridge axiom linking $\hat\S$ and $\A$:
+\textbf{K} axiom for the dual operator $\hat\S\phi = \neg\S\neg\phi$
+characterises closure under finite unions. Note that any frame $(X, P)$ closed
+under intersections and finite unions is a topological space,\footnote{By the
+convention that the empty intersection is the whole space $X$ and the empty
+union is $\emptyset$, we have $X, \emptyset \in P$ too.} where $P$ is the set
+of \emph{closed} sets. Write $\Mtop = \Mint \cap \Mfunions$ for the class of
+models over such frames. We obtain an axiomatisation of $\Mtop$ by adding
+\textbf{K} for $\hat\S$ and a bridge axiom linking $\hat\S$ and $\A$:
 \[
     \begin{array}{lr}
         \hat{\S}(\phi \limplies \psi) \limplies (\hat{\S}\phi \limplies \hat{\S}\psi)
@@ -1612,8 +1618,7 @@ semantics~\citep{van2007modal}.}
 
 Just as the connection between S4 and $\Mint \cap \Munions$ allowed us
 to obtain a complete axiomatisation of $\Mtop$, we can axiomatise $\Mint \cap
-\Mcompl$ by considering S5. For brevity, write $\Mintcompl = \Mint
-\cap \Mcompl$. Let $\sLintcompl$ be the extension of $\sLtop$
+\Mcompl$ by considering S5. Let $\sLintcompl$ be the extension of $\sLtop$
 with the \textbf{5} axiom for $\hat\S$, which we present in the ``diamond"
 form:
 \[
@@ -1623,8 +1628,11 @@ form:
 \begin{theorem}
 \label{thm_mintcompl_axiomatisation}
 $\sLintcompl$ is sound and strongly complete with respect to
-$\Mintcompl$.
+$\Mint \cap \Mcompl$.
 \end{theorem}
+
+The proof of \cref{thm_mintcompl_axiomatisation} is similar to that of
+\cref{thm_mtop_axiomatisation}, and can be found in the appendix.
 
 \section{The Multi-source Case}
 \label{sec_multisource}
@@ -1748,6 +1756,18 @@ $\Pdist_J$ is the smallest set with these properties). While
 $\Pdist_J$ depends on the model $M$, we suppress this from the
 notation.
 
+$\Pdist_J$ also has a topological interpretation. As in
+\cref{sec_connection_with_ep_logic}, each $P_j$ gives rise to an Alexandrov
+topology $\tau_j$ (where $P_j$ are the closed sets) if it is closed under
+unions and intersections. By the aforementioned properties, $\tau^\dist_J$
+corresponds to the coarsest Alexandrov topology finer than each $\tau_j$. On
+the other hand, since the join (in the lattice of topologies on $X$) of
+finitely many Alexandrov topologies is again Alexandrov~\cite[Theorems 2.4,
+2.5]{steiner1966lattice}, it follows that $\tau^\dist_J$ is equal to the join
+$\bigvee_{j \in J}{\tau_j}$.\footnote{
+    We thank an anonymous reviewer for bringing this to our attention.
+}
+
 Now, recall from \cref{thm_s4s5_translation} that our semantics for
 expertise and soundness is connected to relational semantics via the mapping
 $P \mapsto R_P$ (\cref{def_rp}). The following result shows that
@@ -1822,6 +1842,8 @@ Then
 \A(\neg\phi \limplies \Kshared_J\neg\phi).\]
 \end{proposition}
 
+We leave the proof to the appendix.
+%
 \Cref{prop_shared_common_collapse} shows that when interpreting collective
 expertise on $\phi$ as collective refutation of $\phi$ whenever
 $\phi$ is false, there is no difference between using common knowledge

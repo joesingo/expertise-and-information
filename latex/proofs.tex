@@ -431,7 +431,7 @@ means $\entails_{\sLsfoura} t(\psi_0 \land \cdots \land \psi_n \limplies
 
 \begin{proof}[Proof of \cref{thm_mintcompl_axiomatisation}]
     For soundness, we need to check that $\fivesoundness$ is valid on
-    $\Mintcompl$. Let $M = (X, P, V)$ be closed under intersections and
+    $\Mint \cap \Mcompl$. Let $M = (X, P, V)$ be closed under intersections and
     complements, and suppose $M, x \models \S\neg\S\phi$. Note that
     $\|\S\phi\|_M = \bigcap\{A \in P \mid \|\phi\|_M \subseteq A\}$ is an
     intersection from $P$, so $\|\S\phi\|_M \in P$. By closure under
@@ -448,8 +448,8 @@ means $\entails_{\sLsfoura} t(\psi_0 \land \cdots \land \psi_n \limplies
     u(\phi)$, for $\phi \in \cLKA$ (the only new part to check there is that
     $u(\neg\K\phi \limplies \K\neg\K\phi)$ is a theorem of $\sLintcompl$, but
     this follows from $\fivesoundness$). The remainder of the proof goes
-    through as before, this time appealing to the bijection $g: \Mintcompl \to
-    \Msfive$.
+    through as before, this time appealing to the bijection $g: \Mint \cap
+    \Mcompl \to \Msfive$.
 
 \end{proof}
 

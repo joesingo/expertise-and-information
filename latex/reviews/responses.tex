@@ -1,0 +1,191 @@
+\documentclass[12pt]{article}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{quoting}
+
+\title{%
+    Responses to reviewer comments for ``Expertise and knowledge: a modal logic perspective''
+}
+\author{}
+\date{}
+
+\newcommand\todo[1]{{\color{red} [\textbf{TODO:} {#1}]}}
+
+\newenvironment{comment}{
+    \noindent\textbf{Comment:}\
+    \em
+}{\vspace{5mm}}
+
+\newenvironment{response}{
+    \noindent\textbf{Response:}\
+}{\vspace{5mm}}
+
+\renewcommand{\phi}{\varphi}
+\newcommand{\E}{\mathsf{E}}
+\newcommand{\A}{\mathsf{A}}
+\newcommand{\K}{\mathsf{K}}
+\renewcommand{\S}{\mathsf{S}}
+
+\begin{document}
+
+\maketitle
+
+Dear editor and reviewers,\\
+
+We thank you for your detailed comments and suggestions for improving the
+paper. The typos, minor points on presentation and bibliographic errors raised
+by both reviewers have been fixed in the revised paper. Please find more
+detailed responses to each reviewer below.
+
+\section*{Reviewer 1}
+
+\todo{General intro responses?}
+
+\begin{comment}
+    In order to fully understand the intuitive idea of ``soundness'', I had to
+    go to Singleton (2021). The way it’s phrased here, one would think that
+    everything which entails a proposition about which the source is an expert
+    would be sound. Of course, this would mean that reporting a contradiction
+    like $p \land \neg p$ would be vacuously sound, which we see is not the
+    case when the semantics is introduced.
+\end{comment}
+
+\begin{response}
+    \todo{Response.}
+\end{response}
+
+\begin{comment}
+    I know what this sentence is driving at, but I don’t quite agree with it on
+    an intuitive level. Say $A$ has a PhD on how the weather affects mental
+    health (but she's not an expert on mental health broadly speaking), and $B$
+    is a weatherman; between the two of them they do not make an expert on
+    mental health, unless $A$ was an expert already.  I guess there is a subtle
+    but important distinction between being an expert on the assertion ``$\phi$
+    implies $\psi$’ and being an expert on the way in which $\phi$ affects
+    $\psi$.
+\end{comment}
+
+\begin{response}
+    \todo{Response.}
+\end{response}
+
+\begin{comment}
+    Page 13: In 1-agent S5 models one can assume without loss of generality
+    that the ``knowledge'' modality is universal, for the equivalence class
+    partitions the model into the generated submodels given by the equivalence
+    classes, each of them with a universal relation. Of course, if we attempt
+    to do this in this framework we obtain that the $\A$ and the
+    $\K$ modality have the same semantics; I would have loved to see
+    some discussion on why this does not work in the present framework.
+\end{comment}
+
+\begin{response}
+    The difference here is that we work with the language $\mathcal{L}_{\K\A}$,
+    which includes not just the knowledge modality $\K$ but also the universal
+    modality $\A$. Since in the relational semantics over this language
+    $\A\phi$ is always interpreted with the universal relation $X \times X$,
+    the notation of a generated submodel trivialises: the whole space $X$
+    itself is the only set closed under the universal relation. For this
+    reason, the submodels corresponding to the equivalence classes do not
+    preserve the truth value of modal formulas, as would usually be the case
+    with just the $\K$ modality, and thus the assumption that knowledge is
+    universal is \emph{not} without loss of generality.
+\end{response}
+
+\begin{comment}
+   Page 15: if I’m not mistaken, Corollary 1 follows not from the immediately
+   previous Lemma 8 but from Lemma 7 plus the (EA) axiom: if $\E\phi \in
+   \Sigma$ then (by (EA)) $\A\E\phi \in \Sigma$ which implies (by the
+   definition of $R$) $\E\phi \in \Gamma$.
+\end{comment}
+
+\begin{response}
+   This is absolutely correct for the second part of Corollary 1. One can also
+   show the first part ($\A\phi \in \Gamma$ iff $\A\phi \in \Delta$) without
+   Lemma 8 by additionally showing that $\mathbf{4}$ ($\A\phi \rightarrow
+   \A\A\phi$) is provable in $\mathbf{KT5}$. While this derivation is fairly
+   short, we do need Lemma 8 elsewhere in the paper (e.g. in the truth lemma,
+   Lemma 9). For this reason (and to save limited space), we have kept
+   Corollary 1 \emph{after} Lemma 8.
+\end{response}
+
+\begin{comment}
+    Page 21: since the $P_j$'s in this section are Alevandrov topologies, it
+    would be nice to bring up the notion of topological join when defining
+    $P^\mathsf{dist}_J$.
+\end{comment}
+
+\begin{response}
+    This is a good point, and we have added a paragraph to point out this
+    connection after the introduction of $P^\mathsf{dist}_J$.
+\end{response}
+
+\section*{Reviewer 2}
+
+\todo{Journal extension of Singleton (2021)? What can we say here?}
+
+\todo{Title change?}
+
+\begin{comment}
+    My third worry is whether there is any inconsistency between the logical
+    designs and the example used in Abstract, which states that ``if a source
+    has expertise on $\phi$ but not $\psi$, when the conjunction $\phi \land
+    \psi$ is sound whenever $\phi$ holds, since we can ignore $\psi$ (on which
+    the source has no expertise)''. It looks that the example in Abstract aims
+    to argue that the principle ``$\E\phi \land \neg\E\psi \land \phi
+    \rightarrow \S(\phi \land \psi)$'' is valid, but it is not hard to
+    construct a counterexample to it. This makes me doubt whether or not the
+    logical design developed in the paper really captures the example in its
+    motivation. Definitely, it may become valid if we restrict the class of
+    models, but what the desired conditions should be?
+\end{comment}
+
+\begin{response}
+    This is a good point, and indeed the principle extrapolated from the
+    abstract is not in general valid. As suggested, there are some further
+    restrictions upon which it becomes valid, e.g. if one additionally assumes
+    expertise is closed under (finite) intersections, that the source does not
+    have expertise on any non-empty set strictly stronger than $\phi$ (in the
+    sense that $\emptyset \subset A \subseteq \|\phi\|$ implies $A = \|\phi\|$
+    for all $A \in P$) and that $\phi \land \psi$ is consistent. This is the
+    case in Example 2, for instance.
+
+    Since these additional assumptions are not suitable to introduce the
+    intuitive concept of soundness before the semantics are defined, we have
+    removed the example from the abstract, replacing it with the following:
+
+    \begin{quotation}
+        Closely connected with expertise is a notion of \emph{soundness of
+        information}: $\phi$ is said to be ``sound" if it is true \emph{up to
+        lack of expertise} of the source. \textbf{That is, any statement
+        logically weaker than $\phi$ on which the source has expertise must in
+        fact be true. This is relevant for modelling situations in which
+        sources make claims beyond their domain of expertise.}
+    \end{quotation}
+
+    We have also reworked the same example in the introduction:
+
+    \begin{quotation}
+        This formalises the idea of ``filtering out" parts of a statement
+        within a source's expertise. For example, suppose $\phi = p \land q$,
+        and the source has expertise on $p$ but not $q$. Supposing $p$ is true
+        but $q$ is false, $\phi$ is false. However, if we discard information
+        by ignoring $q$ (on which the source has no expertise), we obtain the
+        weaker formula $p$, on which the source \emph{does} have expertise, and
+        which is true. \textbf{If this holds for all possible ways to weaken $p
+        \land q$ (this is the case, for instance, if the source does not have
+        expertise on any statement strictly stronger than $p$), then $p \land
+        q$ is \emph{false} but \emph{sound} for the source to report.}
+    \end{quotation}
+
+    We believe the revised versions better match the logical framework which we
+    go on to introduce.
+
+    \todo{Check these quotes match the final versions.}
+
+    \todo{Shall we point out that their proposed counterexample is not actually
+    a counterexample?}
+\end{response}
+
+\end{document}
