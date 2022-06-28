@@ -5,7 +5,7 @@
 \usepackage{quoting}
 
 \title{%
-    Responses to reviewer comments for ``Expertise and knowledge: a modal logic perspective''
+    Responses to Review Comments
 }
 \author{}
 \date{}
@@ -52,7 +52,12 @@ detailed responses to each reviewer below.
 \end{comment}
 
 \begin{response}
-    \todo{Response.}
+    We agree with this comment, and have changed the informal descriptions of
+    soundness in the abstract and introduction. Reviewer 2 also noted this
+    issue and put forward a counterexample to this principle. We refer to the
+    response to reviewer 2 for the extra assumptions one needs in order for
+    this principle to hold, and the changes we have made to the text for
+    clarification.
 \end{response}
 
 \begin{comment}
@@ -111,7 +116,7 @@ detailed responses to each reviewer below.
 \end{response}
 
 \begin{comment}
-    Page 21: since the $P_j$'s in this section are Alevandrov topologies, it
+    Page 21: since the $P_j$'s in this section are Alexandrov topologies, it
     would be nice to bring up the notion of topological join when defining
     $P^\mathsf{dist}_J$.
 \end{comment}
@@ -119,11 +124,31 @@ detailed responses to each reviewer below.
 \begin{response}
     This is a good point, and we have added a paragraph to point out this
     connection after the introduction of $P^\mathsf{dist}_J$.
+
+    \begin{quotation}
+        $P^\mathsf{dist}_J$ also has a topological interpretation. As in
+        Section 4, each $P_j$ gives rise to an Alexandrov topology $\tau_j$
+        (where $P_j$ are the closed sets) if it is closed under unions and
+        intersections. By the aforementioned properties, $\tau^\mathsf{dist}_J$
+        corresponds to the coarsest Alexandrov topology finer than each
+        $\tau_j$. On the other hand, since the join (in the lattice of
+        topologies on $X$) of finitely many Alexandrov topologies is again
+        Alexandrov~(Steiner, 1966, Theorems 2.4, 2.5), it follows that
+        $\tau^\mathsf{dist}_J$ is equal to the join $\bigvee_{j \in
+        J}{\tau_j}$.
+    \end{quotation}
+
+    Note that we have taken a slightly different interpretation to the
+    reviewer's original suggestion, by viewing each $P_j$ as the \emph{closed}
+    sets of a topology, i.e. $\tau_j = \{A \subseteq X \mid X \setminus A \in
+    P_j\}$ (since $P_j$ is closed under unions and intersections, so too is
+    $\tau_j$). This is to match our earlier topological interpretations in
+    sections 2, 4 and 5, e.g. so that $\|\S\phi\|$ is the closure of
+    $\|\phi\|$.
+
 \end{response}
 
 \section*{Reviewer 2}
-
-\todo{Journal extension of Singleton (2021)? What can we say here?}
 
 \todo{Title change?}
 
@@ -143,13 +168,24 @@ detailed responses to each reviewer below.
 
 \begin{response}
     This is a good point, and indeed the principle extrapolated from the
-    abstract is not in general valid. As suggested, there are some further
-    restrictions upon which it becomes valid, e.g. if one additionally assumes
-    expertise is closed under (finite) intersections, that the source does not
-    have expertise on any non-empty set strictly stronger than $\phi$ (in the
-    sense that $\emptyset \subset A \subseteq \|\phi\|$ implies $A = \|\phi\|$
-    for all $A \in P$) and that $\phi \land \psi$ is consistent. This is the
-    case in Example 2, for instance.
+    abstract is not in general valid. It seems the reviewer's model does not
+    quite constitute a countermodel of $\E\phi \land \neg\E\psi \land \phi
+    \rightarrow \S(\phi \land \psi)$, since it shows $M, 2 \models \E{p} \land
+    \neg\E{q} \land p$ -- so that $\phi$ is $p$ and $\psi$ is $q$ -- but $M, 2
+    \not\models \S(p \land \neg{q})$. Note that $q$ is negated, so this
+    corresponds to $\S(\phi \land \neg\psi)$ instead of $\S(\phi \land \psi)$.
+    %
+    However, a minor modification yields a counterexample: taking $P = \{\{1,
+    2\}, \{2\}\}$ instead, we have $M, 1 \models \E{p} \land \neg\E{q} \land p
+    \land \neg\S(p \land q)$.
+
+    As suggested, there are some further restrictions upon which the principle
+    from the abstract becomes valid, e.g. if one additionally assumes expertise
+    is closed under (finite) intersections, that the source does not have
+    expertise on any non-empty set strictly stronger than $\phi$ (in the sense
+    that $\emptyset \subset A \subseteq \|\phi\|$ implies $A = \|\phi\|$ for
+    all $A \in P$) and that $\phi \land \psi$ is consistent. This is the case
+    in Example 2, for instance.
 
     Since these additional assumptions are not suitable to introduce the
     intuitive concept of soundness before the semantics are defined, we have
@@ -179,13 +215,10 @@ detailed responses to each reviewer below.
         q$ is \emph{false} but \emph{sound} for the source to report.}
     \end{quotation}
 
-    We believe the revised versions better match the logical framework which we
-    go on to introduce.
+    We believe the revised versions better match the logical framework we go on
+    to study.
 
     \todo{Check these quotes match the final versions.}
-
-    \todo{Shall we point out that their proposed counterexample is not actually
-    a counterexample?}
 \end{response}
 
 \end{document}
