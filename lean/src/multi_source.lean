@@ -324,368 +324,777 @@ begin
   exact hmem'.left j hmem a hexp,
 end
 
--- common expertise is closed under intersections and unions if the individual
--- expertise predicates are
--- NOTE: can weaken hypothesis to just j ∈ js...
-lemma com_closed_intersections {m : MSModel α J} {js : set J} :
-  ms_closed_under_intersections m ->
-    closed_under_intersections (com_expertise m js) :=
+def finite_int_dist_expertise {α J : Type} (m : MSModel α J) (js : set J) : set α -> Prop :=
+  let exps : set (set (set α)) :=
+    {exp | extends_indiv m js exp ∧ closed_under_finite_intersections exp ∧
+           closed_under_unions exp}
+  in ⋂₀exps
+
+lemma dist_equiv_finite_unions {α J : Type} [decidable_eq (set α)] (m : MSModel α J) (js : finset J) :
+  ms_closed_under_intersections m -> ms_closed_under_unions m ->
+    ∀ a : set α, dist_expertise m js a <-> finite_int_dist_expertise m js a :=
 begin
-  intros h aa h_all_exp j hmem,
-  have h_all_jexp : ∀ a ∈ aa, m.has_expertise j a,
-  {
-    intros a ha_in_aa;
-    exact h_all_exp a ha_in_aa j hmem
-  },
-  exact h j aa h_all_jexp
-end
-
-lemma com_closed_unions {m : MSModel α J} {js : set J} :
-  ms_closed_under_unions m ->
-    closed_under_unions (com_expertise m js) :=
-begin
-  intros h aa h_all_exp j hmem,
-  have h_all_jexp : ∀ a ∈ aa, m.has_expertise j a,
-  {
-    intros a ha_in_aa;
-    exact h_all_exp a ha_in_aa j hmem
-  },
-  exact h j aa h_all_jexp
-end
-
--- shortcuts for epistemic accessibility relations for individual and
--- collective expertise
-@[simp] def indiv_ep_relation (m : MSModel α J) (j : J) : relation α :=
-  ep_relation (m.has_expertise j)
-
-@[simp] def dist_ep_relation (m : MSModel α J) (js : set J) : relation α :=
-  ep_relation (dist_expertise m js)
-
-@[simp] def com_ep_relation (m : MSModel α J) (js : set J) : relation α :=
-  ep_relation (com_expertise m js)
-
-@[simp] def union_ep_relation (m : MSModel α J) (js : set J) : relation α :=
-  union_of_relations (λj : js, indiv_ep_relation m j)
-
--- epistemic accessibility relation corresponding to distributed expertise is
--- the intersection of the individual relations
---% latex_label: prop_rpdist
-lemma dist_ep_relation_intersection :
-  ∀ m : MSModel α J, ∀ js : set J, ∀ x y : α,
-    (dist_ep_relation m js) x y <-> ∀ j ∈ js, (indiv_ep_relation m j) x y :=
-begin
-  intros m js x y,
+  intros hmint hmunions a,
+  let fexp := finite_int_dist_expertise m js,
   apply iff.intro,
-    intros hdist_xy j hmem,
-    simp,
-    intros a hexp hya,
-    have h : dist_expertise m js a, from dist_extends_indiv j hmem a hexp,
-    exact hdist_xy a h hya,
-
-    intros h,
-    let exp : set α -> Prop := λa, dist_expertise m js a ∧ (y ∈ a -> x ∈ a),
-    suffices : extends_indiv m js exp ∧ closed_under_intersections exp ∧ closed_under_unions exp,
+    -- TODO: more duplication from above...
+    have h_cl_unions : closed_under_unions fexp,
     {
+      intros aa h_all_fexp,
+      apply set.mem_sInter.mpr,
+      intros exp h,
+      have h_all_exp : ∀ a ∈ aa, exp a,
+      {
+        intros a ha_in_aa,
+        exact (set.mem_sInter.mp) (h_all_fexp a ha_in_aa) exp h,
+      },
+      exact h.right.right aa h_all_exp
+    },
+    have h_extends_indiv : extends_indiv m js fexp,
+    {
+      intros j hmem a hexp,
+      apply set.mem_sInter.mpr,
+      intros exp' hmem',
+      exact hmem'.left j hmem a hexp
+    },
+    suffices h_cl_int : closed_under_intersections fexp,
+    {
+      intros h_dist_exp,
+      exact set.mem_sInter.mp h_dist_exp fexp
+        ⟨h_extends_indiv, h_cl_int, h_cl_unions⟩,
+    },
+    suffices h_min_neighbourhoods :
+      ∃ f : α -> set α, ∀ x, x ∈ f x ∧ fexp (f x)
+        ∧ ∀ V : set α, x ∈ V -> fexp V -> f x ⊆ V,
+    {
+      intros aa h_all_fexp,
+      apply exists.elim h_min_neighbourhoods,
+      intros f hfprop,
+      let b := ⋂₀ aa,
+      have h : b = ⋃₀ λU, ∃ x, x ∈ b ∧ U = f x,
+      {
+        apply set.ext,
+        intro x,
+        apply iff.intro,
+          intro h_x_mem_b,
+          refine ⟨f x, _, (hfprop x).left⟩,
+          refine ⟨x, h_x_mem_b, by refl⟩,
+
+          intro h_x_mem_union,
+          apply exists.elim h_x_mem_union,
+          intros fy H,
+          apply exists.elim H,
+          intros H' h_x_mem_fy,
+          apply exists.elim H',
+          intros y h,
+          suffices h_ss : fy ⊆ b, from
+              set.mem_of_mem_of_subset h_x_mem_fy h_ss,
+          apply set.subset_sInter,
+          intros a h_a_mem_aa,
+          have h_y_a : y ∈ a, from set.mem_sInter.mp h.left a h_a_mem_aa,
+          rw h.right,
+          exact (hfprop y).right.right a h_y_a (h_all_fexp a h_a_mem_aa),
+      },
+      have heq : ⋂₀ aa = b, by simp,
+      rw [heq, h],
+      apply h_cl_unions,
+      intros a h_ex_x,
+      apply exists.elim h_ex_x,
+      intros x H,
+      rw H.right,
+      exact (hfprop x).right.left
+    },
+    let g : α -> J -> set α := λx, λj, ⋂₀ {a | m.has_expertise j a ∧ x ∈ a},
+    let F : α -> finset (set α) := λx, finset.image (g x) js,
+    let f : α -> set α := λx, ⋂₀ F x,
+    apply exists.intro f,
+    -- now need to prove the minimal property for f
+    intro x,
+    apply and.intro,
+      -- x ∈ f x
       simp,
-      intros a hdexp hya,
-      have hexp := set.mem_sInter.mp hdexp exp this,
-      exact hexp.right hya
+
+      apply and.intro,
+      -- fexp (f x)
+      have h_cl_finite_int : closed_under_finite_intersections fexp, from sorry,
+      suffices h_exp_each_j : ∀ j, m.has_expertise j (g x j),
+      {
+        apply finset_intersections fexp h_cl_finite_int,
+        intros a h_a_mem_F_x,
+        apply exists.elim (finset.mem_image.mp h_a_mem_F_x),
+        intros j H,
+        apply exists.elim H,
+        intros h_j_mem_js h_g_x_j_eq_a,
+        rw <-h_g_x_j_eq_a,
+        apply h_extends_indiv j h_j_mem_js,
+        exact h_exp_each_j j,
+      },
+      intros j,
+      apply hmint j,
+      intros a h,
+      exact h.left,
+
+      -- minimality property
+      intros v h_x_mem_v h_fexp_v,
+      sorry,
+
+    -- have fexp a, exp' extends individual and is closed under unions and
+    -- arbitrary intersections. since exp' is closed under finite intersections
+    -- too, we get exp' a
+    intros h_fexp_a exp' h_extends,
+    apply set.mem_sInter.mp h_fexp_a exp',
+    refine ⟨h_extends.left, _, h_extends.right.right⟩,
+    apply int_implies_finite_int,
+    exact h_extends.right.left
+end
+
+@[simp] def unions_of_finite_int_of_extend {α J : Type} (m : MSModel α J) (js : set J)
+ : set α -> Prop := λa, ∃ aa, a = ⋃₀ aa ∧ ∀ a' ∈ aa, ∃ bb : finset (set α),
+            a' = ⋂₀ bb ∧ ∀ b ∈ bb, ∃ j ∈ js, m.has_expertise j b
+
+lemma blah {α J : Type}  (m : MSModel α J) (js : finset J) :
+  ms_closed_under_unions m -> ms_closed_under_intersections m ->
+    dist_expertise m js = unions_of_finite_int_of_extend m js :=
+begin
+  intros hmunions hmint,
+  apply set.ext,
+  intro a,
+  apply iff.intro,
+
+    -- show that any set with dist expertise must be a union of finite
+    -- intersections from the extension of the individual expertise prediactes
+    let exp := unions_of_finite_int_of_extend m js,
+    have h_extend : extends_indiv m js exp,
+    {
+      intros j h_j_mem_js a h_j_exp_a,
+      let bb : finset (set α) := {a},
+      let aa : set (set α) := {⋂₀ bb},
+      apply exists.intro aa,
+      apply and.intro,
+        simp,
+
+        intros a' h,
+        apply exists.intro bb,
+        simp,
+        apply and.intro,
+          rw set.eq_of_mem_singleton h,
+          simp,
+          apply exists.intro j,
+          apply and.intro,
+            assumption,
+            assumption,
+    },
+    -- it suffices to show exp is closed under intersections and unions
+    suffices h_closure : closed_under_intersections exp ∧ closed_under_unions exp,
+    {
+      intro h_dist_exp_a,
+      apply set.mem_sInter.mp h_dist_exp_a exp,
+      exact ⟨h_extend, h_closure⟩
     },
     apply and.intro,
-      -- show exp extends individual expertise
-      intros j hmem a hexp,
-      exact ⟨dist_extends_indiv j hmem a hexp, h j hmem a hexp⟩,
-      apply and.intro,
-      -- show exp closed under intersections
+      -- intersections
+      sorry,
+
+      -- unions
       intros aa h_all_exp,
-      have h_all_distexp : ∀ a ∈ aa, dist_expertise m js a, by
-        intros a ha_in_aa; exact (h_all_exp a ha_in_aa).left,
-      apply and.intro,
-        -- show intersection is in dist_expertise
-        exact dist_closed_intersections aa h_all_distexp,
-        -- show y in intersection implies x is also
-        intro hy_int,
-        apply set.mem_sInter.mpr,
-        intros a ha_in_aa,
-        have hy_a : y ∈ a, from set.mem_sInter.mp hy_int a ha_in_aa,
-        exact (h_all_exp a ha_in_aa).right hy_a,
+      let aa' := ⋃ (H : a ∈ aa), set.univ,
+      apply exists.intro aa',
+        sorry,
 
-      -- similarly, show exp closed under unions
-      intros aa h_all_exp,
-      have h_all_distexp : ∀ a ∈ aa, dist_expertise m js a, by
-        intros a ha_in_aa; exact (h_all_exp a ha_in_aa).left,
-      apply and.intro,
-        exact dist_closed_unions aa h_all_distexp,
-        intro hy_union,
-        apply set.mem_sUnion.mpr,
-        apply exists.elim hy_union,
-        intros a hexists,
-        apply exists.elim hexists,
-        intros ha_in_aa hy_a,
-        have hx_a : x ∈ a, from (h_all_exp a ha_in_aa).right hy_a,
-        exact ⟨a, ha_in_aa, hx_a⟩,
+    -- show that if a is a union of finite intersections from the union of the
+    -- expertise predicates, then it belongs in dist_expertise
+    intros h,
+    apply exists.elim h,
+    intros aa h',
+    rw h'.left,
+    apply dist_closed_unions,
+    intros a h_a_mem_aa,
+    apply exists.elim (h'.right a h_a_mem_aa),
+    intros bb h'',
+    rw h''.left,
+    apply dist_closed_intersections,
+    intros a' h_a'_mem_bb,
+    apply exists.elim (h''.right a' h_a'_mem_bb),
+    intros j H,
+    apply exists.elim H,
+    intros h_j_mem_js,
+    apply dist_extends_indiv j h_j_mem_js
 end
 
-lemma transitive_closure_is_transitive {r : relation α} :
-  is_transitive (transitive_closure r) :=
-begin
-  intros x y z hxy hyz,
-  apply exists.elim hxy,
-  intros n hn_xy,
-  apply exists.elim hyz,
-  intros m hm_yz,
-  refine ⟨n + m, _, relation_product_property hn_xy.right hm_yz.right⟩,
-  apply nat.add_pos_left,
-  exact hn_xy.left
-end
+inductive joe_closure (p : set (set α)) : set α -> Prop
+  | basic : ∀ a ∈ p, joe_closure a
+  | fint  : ∀ a b, joe_closure a -> joe_closure b -> joe_closure (a ∩ b)
+  | union : ∀ aa, (∀ a ∈ aa, joe_closure a) -> joe_closure (⋃₀ aa)
 
-lemma dc_wrt_product {r : relation α} {a : set α} {n : ℕ} :
-  downwards_closed a r -> downwards_closed a (relation_product r n) :=
-begin
-  intro h,
-  induction n,
-    case zero
-    {
-      intros x y hr hya,
-      simp at *,
-      rw hr,
-      exact hya
-    },
-    case succ : m ih
-    {
-      intros x z hrxz hza,
-      apply exists.elim hrxz,
-      intros y hr,
-      have hya : y ∈ a, from h y z hr.right hza,
-      exact ih x y hr.left hya
-    }
-end
+def union_exp {α J : Type} (m : MSModel α J) (js : set J) : set α -> Prop :=
+  {a | ∃ j ∈ js, m.has_expertise j a}
 
-lemma dc_wrt_transitive_closure {r : relation α} {a : set α} :
-  downwards_closed a r <-> downwards_closed a (transitive_closure r) :=
+structure min_neighbourhood {α : Type} (p : set α -> Prop) (x : α) : Type :=
+  (neigh : set α)
+  (mem : x ∈ neigh)
+  (contained : p neigh)
+  (min : ∀ U, x ∈ U -> p U -> neigh ⊆ U)
+
+lemma closed_under_int_and_union_min_neigh {α : Type} (p : set α -> Prop) :
+  closed_under_unions p ->
+    ((closed_under_intersections p)
+      <-> (∀ x, ∃ U, x ∈ U ∧ p U ∧ ∀ V, x ∈ V -> p V -> U ⊆ V)) :=
 begin
+  intros h_unions,
   apply iff.intro,
-    intros h x y hrtr hya,
-    apply exists.elim hrtr,
-    intros n hprop,
-    exact dc_wrt_product h x y hprop.right hya,
+    intros h_int x,
+    let U := ⋂₀ {V | x ∈ V ∧ p V},
+    apply exists.intro U,
+    refine ⟨_, _, _⟩,
+      apply set.mem_sInter.mpr,
+      intros V h,
+      exact h.left,
 
-    intros h x y hr hya,
-    have hrtr : transitive_closure r x y,
-    {
-      refine ⟨1, _, _⟩,
-        simp,
-        simp,
-        exact hr,
-    },
-    exact h x y hrtr hya,
+      apply h_int,
+      intros V h,
+      exact h.right,
+
+      intros V h_x_mem_v h_p_v,
+      apply set.sInter_subset_of_mem,
+      exact ⟨h_x_mem_v, h_p_v⟩,
+
+    intros h aa h_all_p,
+    sorry,
 end
 
--- the relation corresponding to common expertise is the transitive closure of
--- the union of the individual relations
---% latex_label: prop_rcommon
-lemma com_ep_relation_union : ∀ m : MSModel α J, ∀ js : set J, js.nonempty ->
-  ms_closed_under_unions m -> ms_closed_under_intersections m -> ∀ x y : α,
-    (com_ep_relation m js) x y <-> (transitive_closure (union_ep_relation m js)) x y :=
+lemma bbb {α J : Type} (m : MSModel α J) (js : finset J) :
+  ms_closed_under_intersections m -> ms_closed_under_unions m ->
+    dist_expertise m js = joe_closure (union_exp m js) :=
 begin
-  intros m js hjs_nonempty hmunions hmint,
+  intros hmint hmunions,
+  apply set.ext,
+  intros a0,
+  apply iff.intro,
+    let exp := joe_closure (union_exp m js),
+    intro h,
+    have h_unions : closed_under_unions exp, by
+    {
+        intros aa h_all_exp,
+        apply joe_closure.union,
+        exact h_all_exp
+    },
+    suffices h_int : closed_under_intersections exp,
+    {
+      apply set.mem_sInter.mpr h,
+      apply and.intro,
+        intros j hmem a hexp,
+        exact joe_closure.basic a ⟨j, hmem, hexp⟩,
+        exact ⟨h_int, h_unions⟩
+      },
+    sorry,
 
-  -- introduce some names for relations and expertise predicates, for brevity
-  let r_com := com_ep_relation m js,
-  let r_union := union_ep_relation m js,
-  let r_tr := transitive_closure r_union,
-  let r_indiv := λj, indiv_ep_relation m j,
-  let exp_com := com_expertise m js,
-  let exp_indiv := λj, m.has_expertise j,
-
-  -- exp_com is reflexive and transitive
-  have h1 := ep_connection.ref_and_tr exp_com,
-
-  -- by an earlier result, it is sufficient to show that the two relations are
-  -- reflexive, transitive, and have the same downwards closed sets
-  apply ep_connection.same_dc_implies_equal,
-    exact h1.right,
-    exact h1.left,
-    exact transitive_closure_is_transitive,
-    -- need to use js ≠ ∅ to show the transitive closure of the union is reflexive
-    intro x,
-    refine ⟨1, _⟩,
-    simp,
-    exact ⟨set.nonempty.some hjs_nonempty, set.nonempty.some_mem hjs_nonempty⟩,
-    -- show same dc sets
-    intro a,
-    have hunions : closed_under_unions exp_com, from
-      com_closed_unions (λj, hmunions j),
-    have hint : closed_under_intersections exp_com, from
-      com_closed_intersections (λj, hmint j),
-    -- we have a series of equivalences:
-    calc
-      downwards_closed a r_com
-          <-> exp_com a :
-              iff.symm $ ep_connection.exp_iff_dc exp_com hunions hint a
-      ... <-> ∀ j ∈ js, m.has_expertise j a : by refl
-      ... <-> ∀ j ∈ js, downwards_closed a (r_indiv j) : by
-            {
-              apply forall_congr,
-              intros j,
-              apply imp_congr,
-                refl,
-                exact ep_connection.exp_iff_dc (exp_indiv j) (hmunions j)
-                  (hmint j) a
-            }
-      ... <-> downwards_closed a r_union : by
-            {
-              apply iff.intro,
-                intro h,
-                simp,
-                introv hrunion_xy hya,
-                apply exists.elim hrunion_xy,
-                intros j hrj_xy,
-                exact h j (subtype.mem j) x y hrj_xy hya,
-
-                simp,
-                intros h j hmem x y hrj_xy hya,
-                exact h x y ⟨⟨j, hmem⟩, hrj_xy⟩ hya
-            }
-      ... <-> downwards_closed a r_tr : dc_wrt_transitive_closure
+    intro h,
+    induction h,
+      case basic : a h
+      {
+        apply set.mem_sInter.mpr,
+        intros exp' h',
+        apply exists.elim h,
+        intros j H,
+        apply exists.elim H,
+        intros,
+        apply h'.left,
+        repeat { assumption },
+      },
+      case fint : a b h_mem_a h_mem_b iha ihb
+      {
+        suffices hcl : closed_under_finite_intersections (dist_expertise m js),
+          from hcl.right a b iha ihb,
+        apply int_implies_finite_int,
+        exact dist_closed_intersections,
+      },
+      case union : aa h_all_exp ih
+      {
+        apply dist_closed_unions,
+        apply ih
+      }
 end
 
--- define when a multi-source formula does not feature the empty coalition js = ∅
-@[simp] def no_empty_coalition : MSFormula J -> Prop
-  | ⊥  := true
-  | (P n)   := true
-  | (φ & ψ) := no_empty_coalition φ ∧ no_empty_coalition ψ
-  | (# φ)   := no_empty_coalition φ
-  | (φ ⇒ ψ) := no_empty_coalition φ ∧ no_empty_coalition ψ
-  | (φ ⇔ ψ) := no_empty_coalition φ ∧ no_empty_coalition ψ
-  | (A φ)   := no_empty_coalition φ
-  | (E_indiv j ; φ) := no_empty_coalition φ
-  | (E_dist js ; φ) := no_empty_coalition φ ∧ js.nonempty
-  | (E_com js ; φ)  := no_empty_coalition φ ∧ js.nonempty
-  | (S_indiv j ; φ) := no_empty_coalition φ
-  | (S_dist js ; φ) := no_empty_coalition φ ∧ js.nonempty
-  | (S_com js ; φ)  := no_empty_coalition φ ∧ js.nonempty
+-- distributed expertise can equivalently be define by only closing under
+-- *finite* unions, if each individual expertise predicate is closed under
+-- unions and intersections. this corresponds to the join in the lattice of
+-- topologies
+/-\ def finite_union_dist_expertise {α J : Type} (m : MSModel α J) (js : set J) : set α -> Prop := \ -/
+/-\   let exps : set (set (set α)) := \ -/
+/-\     {exp | extends_indiv m js exp ∧ closed_under_intersections exp ∧ \ -/
+/-\            closed_under_finite_unions exp} \ -/
+/-\   in ⋂₀exps \ -/
 
--- multi-source generalisation of the ealier translation result
---% latex_label: thm_collective_s4s5_translation
-theorem ms_semantic_translation :
-  ∀ m : MSModel α J, ms_closed_under_unions m -> ms_closed_under_intersections m ->
-    ∀ φ : MSFormula J, no_empty_coalition φ -> ∀ x : α,
-      ms_sat m x φ <-> ms_ksat (ms_expmodel_to_rmodel m) x (translation φ) :=
-begin
-  intros m hmunions hmint θ hne,
-  induction θ,
-  case falsum
-    { intro x, refl },
-  case atom : n
-    { intro x; refl },
-  case and : φ ψ ihφ ihψ
-    { intro x; simp at hne; exact and_congr (ihφ hne.left x) (ihψ hne.right x) },
-  case neg : φ ih
-    { intro x; exact not_congr (ih hne x) },
-  case implies : φ ψ ihφ ihψ
-    { intro x; simp at hne; exact imp_congr (ihφ hne.left x) (ihψ hne.right x) },
-  case iff : φ ψ ihφ ihψ
-    { intro x; simp at hne; exact iff_congr (ihφ hne.left x) (ihψ hne.right x) },
-  case univ : φ ih
-    { intro x; apply forall_congr; intro y; exact (ih hne y) },
-  -- the cases of expertise and soundness all use the general results
-  -- exp_translation and sound_translation, plus results here on the relations
-  -- associated with collective expertise
-  case exp_indiv : j φ ih
-    {
-      intro x,
-      simp at hne,
-      apply ep_connection.exp_translation (ih hne),
-        exact hmunions j,
-        exact hmint j
-    },
-  case sound_indiv : j φ ih
-    {
-      intro x,
-      simp at hne,
-      apply ep_connection.sound_translation (ih hne),
-        exact hmunions j,
-        exact hmint j,
-    },
-  case exp_dist : js φ ih
-    {
-      intro x,
-      simp,
-      let a := {y | ms_sat m y φ},
-      let b := {y | ms_ksat (ms_expmodel_to_rmodel m) y (translation φ)},
-      simp at hne,
-      rw @ep_connection.exp_translation α (dist_expertise m js) a b
-        dist_closed_unions dist_closed_intersections (ih hne.left),
-      apply forall_congr,
-      intro y,
-      apply imp_congr,
-        refl,
-        apply forall_congr,
-        intro z,
-        apply imp_congr,
-          exact dist_ep_relation_intersection m js y z,
-          refl
-    },
-  case sound_dist : js φ ih
-    {
-      intro x,
-      simp,
-      let a := {y | ms_sat m y φ},
-      let b := {y | ms_ksat (ms_expmodel_to_rmodel m) y (translation φ)},
-      simp at hne,
-      rw @ep_connection.sound_translation α (dist_expertise m js) a b
-        dist_closed_unions dist_closed_intersections x (ih hne.left),
-      simp,
-      apply exists_congr,
-      intro y,
-      apply and_congr,
-        exact dist_ep_relation_intersection m js x y,
-        refl,
-    },
-    case exp_com : js φ ih
-    {
-      intro x,
-      simp,
-      let a := {y | ms_sat m y φ},
-      let b := {y | ms_ksat (ms_expmodel_to_rmodel m) y (translation φ)},
-      simp at hne,
-      have hjs : js.nonempty, from hne.right,
-      rw @ep_connection.exp_translation α (com_expertise m js) a b
-        (com_closed_unions hmunions) (com_closed_intersections hmint)
-        (ih hne.left),
-      apply forall_congr,
-      intro y,
-      apply imp_congr,
-        refl,
-        apply forall_congr,
-        intro z,
-        apply imp_congr,
-          let h := com_ep_relation_union m js hjs hmunions hmint y z,
-          simp at h,
-          exact h,
-          refl,
-    },
-    case sound_com : js φ ih
-    {
-      intro x,
-      simp,
-      let a := {y | ms_sat m y φ},
-      let b := {y | ms_ksat (ms_expmodel_to_rmodel m) y (translation φ)},
-      simp at hne,
-      have hjs : js.nonempty, from hne.right,
-        rw @ep_connection.sound_translation α (com_expertise m js) a b
-          (com_closed_unions hmunions) (com_closed_intersections hmint) x
-          (ih hne.left),
-        simp,
-        apply exists_congr,
-        intro y,
-        apply and_congr,
-          let h := com_ep_relation_union m js hjs hmunions hmint x y,
-          simp at h,
-          exact h,
-          refl
-    }
-  end
+/-\ lemma dist_equiv_finite_unions {α J : Type} (m : MSModel α J) (js : set J) : \ -/
+/-\   ∀ a : set α, dist_expertise m js a <-> finite_union_dist_expertise m js a := \ -/
+/-\ begin \ -/
+/-\   intro a, \ -/
+/-\   apply iff.intro, \ -/
+/-\     let fexp := finite_union_dist_expertise m js, \ -/
+/-\     have h_cl_inter : closed_under_intersections fexp, \ -/
+/-\     { \ -/
+/-\       intros aa h_all, \ -/
+/-\       apply set.mem_sInter.mpr, \ -/
+/-\       intros exp h, \ -/
+/-\       have h_all_exp : ∀ a ∈ aa, exp a, \ -/
+/-\       { \ -/
+/-\         intros a ha_in_aa, \ -/
+/-\         have hfexp : fexp a, from h_all a ha_in_aa, \ -/
+/-\         exact (set.mem_sInter.mp) hfexp exp h, \ -/
+/-\       }, \ -/
+/-\       exact h.right.left aa h_all_exp \ -/
+/-\     }, \ -/
+/-\     -- sufficient to show that the closure under finite unions and \ -/
+/-\     -- intersections is actually closed under arbitrary unions \ -/
+/-\     suffices h : closed_under_unions fexp, \ -/
+/-\     { \ -/
+/-\       intros h_dist_exp, \ -/
+/-\       -- TODO: more duplication from above... \ -/
+/-\       have h1 : extends_indiv m js fexp, \ -/
+/-\       { \ -/
+/-\         intros j hmem a hexp, \ -/
+/-\         apply set.mem_sInter.mpr, \ -/
+/-\         intros exp' hmem', \ -/
+/-\         exact hmem'.left j hmem a hexp \ -/
+/-\       }, \ -/
+/-\       exact set.mem_sInter.mp h_dist_exp fexp ⟨h1, h_cl_inter, h⟩ \ -/
+/-\     }, \ -/
+    /-\ suffices hmin_neigh : \ -/
+    /-\   ∃ f : α -> set α, ∀ x : α, x ∈ f x ∧ fexp (f x)ᶜ \ -/
+    /-\     ∧ ∀ V : set α, x ∈ V -> fexp Vᶜ -> f x ⊆ V, \ -/
+    /-\ { \ -/
+    /-\   apply exists.elim hmin_neigh, \ -/
+    /-\   intros f hfprop aa h_all_exp, \ -/
+    /-\   let b := ⋃₀aa, \ -/
+    /-\   let c := bᶜ, \ -/
+    /-\   have h1 : c = ⋃ x : c, f x, \ -/
+    /-\   { \ -/
+    /-\     apply set.ext, \ -/
+    /-\     intros x, \ -/
+    /-\     apply iff.intro, \ -/
+    /-\       intro hmem, \ -/
+    /-\       apply set.mem_Union.mpr, \ -/
+    /-\       exact ⟨⟨x, hmem⟩, (hfprop x).left⟩, \ -/
+
+    /-\       suffices h_ss_compl : ∀ y ∈ c, ∀ a ∈ aa, f y ⊆ aᶜ, \ -/
+    /-\       { \ -/
+    /-\         intros h_x_mem_union, \ -/
+    /-\         apply exists.elim (set.mem_Union.mp h_x_mem_union), \ -/
+    /-\         intros y h_x_mem_fy, \ -/
+    /-\         simp, \ -/
+    /-\         intros a h_a_mem_aa, \ -/
+    /-\         apply (set.mem_compl_iff a x).mp, \ -/
+    /-\         apply set.mem_of_mem_of_subset h_x_mem_fy, \ -/
+    /-\         exact h_ss_compl y (subtype.mem y) a h_a_mem_aa \ -/
+    /-\       }, \ -/
+    /-\       intros y h_y_mem_c a h_a_mem_aa, \ -/
+    /-\       simp at h_y_mem_c, \ -/
+    /-\       apply (hfprop y).right.right aᶜ, \ -/
+    /-\         apply (set.mem_compl_iff a y).mpr, \ -/
+    /-\         exact h_y_mem_c a h_a_mem_aa, \ -/
+
+    /-\         simp, \ -/
+    /-\         exact h_all_exp a h_a_mem_aa, \ -/
+    /-\   }, \ -/
+    /-\   have h2 : ⋃₀aa = ⋂₀ (set.image (λx, (f x)ᶜ) c), \ -/
+    /-\   { \ -/
+    /-\     have heq : ⋃₀aa = cᶜ, by simp, \ -/
+    /-\     rw [heq, h1], \ -/
+    /-\     rw set.compl_Union, \ -/
+    /-\     rw <-h1, \ -/
+    /-\     simp at *, \ -/
+    /-\     apply set.ext, \ -/
+    /-\     intro x, \ -/
+    /-\     simp at *, \ -/
+    /-\   }, \ -/
+    /-\   rw h2, \ -/
+    /-\   apply h_cl_inter, \ -/
+    /-\   intros a h_mem_image, \ -/
+    /-\   apply exists.elim (set.mem_image_iff_bex.mp h_mem_image), \ -/
+    /-\   intros x hxprop, \ -/
+    /-\   apply exists.elim hxprop, \ -/
+    /-\   intros hmem h_eq_fx_c, \ -/
+    /-\   rw <-h_eq_fx_c, \ -/
+    /-\   exact (hfprop x).right.left \ -/
+    /-\ }, \ -/
+    /-\ -- by choice, we just need to find a minimal neighbourhood \ -/
+    /-\ suffices h_exists_min : \ -/
+    /-\   ∀ x : α, ∃ U : set α, x ∈ U ∧ fexp Uᶜ \ -/
+    /-\     ∧ ∀ V : set α, x ∈ V -> fexp Vᶜ -> U ⊆ V, \ -/
+    /-\ { \ -/
+    /-\   sorry \ -/
+    /-\ }, \ -/
+    /-\ sorry, \ -/
+
+    /-\ intros h_fin_dist aa h, \ -/
+    /-\ apply h_fin_dist aa, \ -/
+    /-\ refine ⟨h.left, h.right.left, _⟩, \ -/
+    /-\ apply unions_implies_funions, \ -/
+    /-\ exact h.right.right \ -/
+/-\ end \ -/
+
+/-\ -- common expertise is closed under intersections and unions if the individual \ -/
+/-\ -- expertise predicates are \ -/
+/-\ -- NOTE: can weaken hypothesis to just j ∈ js... \ -/
+/-\ lemma com_closed_intersections {m : MSModel α J} {js : set J} : \ -/
+/-\   ms_closed_under_intersections m -> \ -/
+/-\     closed_under_intersections (com_expertise m js) := \ -/
+/-\ begin \ -/
+/-\   intros h aa h_all_exp j hmem, \ -/
+/-\   have h_all_jexp : ∀ a ∈ aa, m.has_expertise j a, \ -/
+/-\   { \ -/
+/-\     intros a ha_in_aa; \ -/
+/-\     exact h_all_exp a ha_in_aa j hmem \ -/
+/-\   }, \ -/
+/-\   exact h j aa h_all_jexp \ -/
+/-\ end \ -/
+
+/-\ lemma com_closed_unions {m : MSModel α J} {js : set J} : \ -/
+/-\   ms_closed_under_unions m -> \ -/
+/-\     closed_under_unions (com_expertise m js) := \ -/
+/-\ begin \ -/
+/-\   intros h aa h_all_exp j hmem, \ -/
+/-\   have h_all_jexp : ∀ a ∈ aa, m.has_expertise j a, \ -/
+/-\   { \ -/
+/-\     intros a ha_in_aa; \ -/
+/-\     exact h_all_exp a ha_in_aa j hmem \ -/
+/-\   }, \ -/
+/-\   exact h j aa h_all_jexp \ -/
+/-\ end \ -/
+
+/-\ -- shortcuts for epistemic accessibility relations for individual and \ -/
+/-\ -- collective expertise \ -/
+/-\ @[simp] def indiv_ep_relation (m : MSModel α J) (j : J) : relation α := \ -/
+/-\   ep_relation (m.has_expertise j) \ -/
+
+/-\ @[simp] def dist_ep_relation (m : MSModel α J) (js : set J) : relation α := \ -/
+/-\   ep_relation (dist_expertise m js) \ -/
+
+/-\ @[simp] def com_ep_relation (m : MSModel α J) (js : set J) : relation α := \ -/
+/-\   ep_relation (com_expertise m js) \ -/
+
+/-\ @[simp] def union_ep_relation (m : MSModel α J) (js : set J) : relation α := \ -/
+/-\   union_of_relations (λj : js, indiv_ep_relation m j) \ -/
+
+/-\ -- epistemic accessibility relation corresponding to distributed expertise is \ -/
+/-\ -- the intersection of the individual relations \ -/
+/-\ --% latex_label: prop_rpdist \ -/
+/-\ lemma dist_ep_relation_intersection : \ -/
+/-\   ∀ m : MSModel α J, ∀ js : set J, ∀ x y : α, \ -/
+/-\     (dist_ep_relation m js) x y <-> ∀ j ∈ js, (indiv_ep_relation m j) x y := \ -/
+/-\ begin \ -/
+/-\   intros m js x y, \ -/
+/-\   apply iff.intro, \ -/
+/-\     intros hdist_xy j hmem, \ -/
+/-\     simp, \ -/
+/-\     intros a hexp hya, \ -/
+/-\     have h : dist_expertise m js a, from dist_extends_indiv j hmem a hexp, \ -/
+/-\     exact hdist_xy a h hya, \ -/
+
+/-\     intros h, \ -/
+/-\     let exp : set α -> Prop := λa, dist_expertise m js a ∧ (y ∈ a -> x ∈ a), \ -/
+/-\     suffices : extends_indiv m js exp ∧ closed_under_intersections exp ∧ closed_under_unions exp, \ -/
+/-\     { \ -/
+/-\       simp, \ -/
+/-\       intros a hdexp hya, \ -/
+/-\       have hexp := set.mem_sInter.mp hdexp exp this, \ -/
+/-\       exact hexp.right hya \ -/
+/-\     }, \ -/
+/-\     apply and.intro, \ -/
+/-\       -- show exp extends individual expertise \ -/
+/-\       intros j hmem a hexp, \ -/
+/-\       exact ⟨dist_extends_indiv j hmem a hexp, h j hmem a hexp⟩, \ -/
+/-\       apply and.intro, \ -/
+/-\       -- show exp closed under intersections \ -/
+/-\       intros aa h_all_exp, \ -/
+/-\       have h_all_distexp : ∀ a ∈ aa, dist_expertise m js a, by \ -/
+/-\         intros a ha_in_aa; exact (h_all_exp a ha_in_aa).left, \ -/
+/-\       apply and.intro, \ -/
+/-\         -- show intersection is in dist_expertise \ -/
+/-\         exact dist_closed_intersections aa h_all_distexp, \ -/
+/-\         -- show y in intersection implies x is also \ -/
+/-\         intro hy_int, \ -/
+/-\         apply set.mem_sInter.mpr, \ -/
+/-\         intros a ha_in_aa, \ -/
+/-\         have hy_a : y ∈ a, from set.mem_sInter.mp hy_int a ha_in_aa, \ -/
+/-\         exact (h_all_exp a ha_in_aa).right hy_a, \ -/
+
+/-\       -- similarly, show exp closed under unions \ -/
+/-\       intros aa h_all_exp, \ -/
+/-\       have h_all_distexp : ∀ a ∈ aa, dist_expertise m js a, by \ -/
+/-\         intros a ha_in_aa; exact (h_all_exp a ha_in_aa).left, \ -/
+/-\       apply and.intro, \ -/
+/-\         exact dist_closed_unions aa h_all_distexp, \ -/
+/-\         intro hy_union, \ -/
+/-\         apply set.mem_sUnion.mpr, \ -/
+/-\         apply exists.elim hy_union, \ -/
+/-\         intros a hexists, \ -/
+/-\         apply exists.elim hexists, \ -/
+/-\         intros ha_in_aa hy_a, \ -/
+/-\         have hx_a : x ∈ a, from (h_all_exp a ha_in_aa).right hy_a, \ -/
+/-\         exact ⟨a, ha_in_aa, hx_a⟩, \ -/
+/-\ end \ -/
+
+/-\ lemma transitive_closure_is_transitive {r : relation α} : \ -/
+/-\   is_transitive (transitive_closure r) := \ -/
+/-\ begin \ -/
+/-\   intros x y z hxy hyz, \ -/
+/-\   apply exists.elim hxy, \ -/
+/-\   intros n hn_xy, \ -/
+/-\   apply exists.elim hyz, \ -/
+/-\   intros m hm_yz, \ -/
+/-\   refine ⟨n + m, _, relation_product_property hn_xy.right hm_yz.right⟩, \ -/
+/-\   apply nat.add_pos_left, \ -/
+/-\   exact hn_xy.left \ -/
+/-\ end \ -/
+
+/-\ lemma dc_wrt_product {r : relation α} {a : set α} {n : ℕ} : \ -/
+/-\   downwards_closed a r -> downwards_closed a (relation_product r n) := \ -/
+/-\ begin \ -/
+/-\   intro h, \ -/
+/-\   induction n, \ -/
+/-\     case zero \ -/
+/-\     { \ -/
+/-\       intros x y hr hya, \ -/
+/-\       simp at *, \ -/
+/-\       rw hr, \ -/
+/-\       exact hya \ -/
+/-\     }, \ -/
+/-\     case succ : m ih \ -/
+/-\     { \ -/
+/-\       intros x z hrxz hza, \ -/
+/-\       apply exists.elim hrxz, \ -/
+/-\       intros y hr, \ -/
+/-\       have hya : y ∈ a, from h y z hr.right hza, \ -/
+/-\       exact ih x y hr.left hya \ -/
+/-\     } \ -/
+/-\ end \ -/
+
+/-\ lemma dc_wrt_transitive_closure {r : relation α} {a : set α} : \ -/
+/-\   downwards_closed a r <-> downwards_closed a (transitive_closure r) := \ -/
+/-\ begin \ -/
+/-\   apply iff.intro, \ -/
+/-\     intros h x y hrtr hya, \ -/
+/-\     apply exists.elim hrtr, \ -/
+/-\     intros n hprop, \ -/
+/-\     exact dc_wrt_product h x y hprop.right hya, \ -/
+
+/-\     intros h x y hr hya, \ -/
+/-\     have hrtr : transitive_closure r x y, \ -/
+/-\     { \ -/
+/-\       refine ⟨1, _, _⟩, \ -/
+/-\         simp, \ -/
+/-\         simp, \ -/
+/-\         exact hr, \ -/
+/-\     }, \ -/
+/-\     exact h x y hrtr hya, \ -/
+/-\ end \ -/
+
+/-\ -- the relation corresponding to common expertise is the transitive closure of \ -/
+/-\ -- the union of the individual relations \ -/
+/-\ --% latex_label: prop_rcommon \ -/
+/-\ lemma com_ep_relation_union : ∀ m : MSModel α J, ∀ js : set J, js.nonempty -> \ -/
+/-\   ms_closed_under_unions m -> ms_closed_under_intersections m -> ∀ x y : α, \ -/
+/-\     (com_ep_relation m js) x y <-> (transitive_closure (union_ep_relation m js)) x y := \ -/
+/-\ begin \ -/
+/-\   intros m js hjs_nonempty hmunions hmint, \ -/
+
+/-\   -- introduce some names for relations and expertise predicates, for brevity \ -/
+/-\   let r_com := com_ep_relation m js, \ -/
+/-\   let r_union := union_ep_relation m js, \ -/
+/-\   let r_tr := transitive_closure r_union, \ -/
+/-\   let r_indiv := λj, indiv_ep_relation m j, \ -/
+/-\   let exp_com := com_expertise m js, \ -/
+/-\   let exp_indiv := λj, m.has_expertise j, \ -/
+
+/-\   -- exp_com is reflexive and transitive \ -/
+/-\   have h1 := ep_connection.ref_and_tr exp_com, \ -/
+
+/-\   -- by an earlier result, it is sufficient to show that the two relations are \ -/
+/-\   -- reflexive, transitive, and have the same downwards closed sets \ -/
+/-\   apply ep_connection.same_dc_implies_equal, \ -/
+/-\     exact h1.right, \ -/
+/-\     exact h1.left, \ -/
+/-\     exact transitive_closure_is_transitive, \ -/
+/-\     -- need to use js ≠ ∅ to show the transitive closure of the union is reflexive \ -/
+/-\     intro x, \ -/
+/-\     refine ⟨1, _⟩, \ -/
+/-\     simp, \ -/
+/-\     exact ⟨set.nonempty.some hjs_nonempty, set.nonempty.some_mem hjs_nonempty⟩, \ -/
+/-\     -- show same dc sets \ -/
+/-\     intro a, \ -/
+/-\     have hunions : closed_under_unions exp_com, from \ -/
+/-\       com_closed_unions (λj, hmunions j), \ -/
+/-\     have hint : closed_under_intersections exp_com, from \ -/
+/-\       com_closed_intersections (λj, hmint j), \ -/
+/-\     -- we have a series of equivalences: \ -/
+/-\     calc \ -/
+/-\       downwards_closed a r_com \ -/
+/-\           <-> exp_com a : \ -/
+/-\               iff.symm $ ep_connection.exp_iff_dc exp_com hunions hint a \ -/
+/-\       ... <-> ∀ j ∈ js, m.has_expertise j a : by refl \ -/
+/-\       ... <-> ∀ j ∈ js, downwards_closed a (r_indiv j) : by \ -/
+/-\             { \ -/
+/-\               apply forall_congr, \ -/
+/-\               intros j, \ -/
+/-\               apply imp_congr, \ -/
+/-\                 refl, \ -/
+/-\                 exact ep_connection.exp_iff_dc (exp_indiv j) (hmunions j) \ -/
+/-\                   (hmint j) a \ -/
+/-\             } \ -/
+/-\       ... <-> downwards_closed a r_union : by \ -/
+/-\             { \ -/
+/-\               apply iff.intro, \ -/
+/-\                 intro h, \ -/
+/-\                 simp, \ -/
+/-\                 introv hrunion_xy hya, \ -/
+/-\                 apply exists.elim hrunion_xy, \ -/
+/-\                 intros j hrj_xy, \ -/
+/-\                 exact h j (subtype.mem j) x y hrj_xy hya, \ -/
+
+/-\                 simp, \ -/
+/-\                 intros h j hmem x y hrj_xy hya, \ -/
+/-\                 exact h x y ⟨⟨j, hmem⟩, hrj_xy⟩ hya \ -/
+/-\             } \ -/
+/-\       ... <-> downwards_closed a r_tr : dc_wrt_transitive_closure \ -/
+/-\ end \ -/
+
+/-\ -- define when a multi-source formula does not feature the empty coalition js = ∅ \ -/
+/-\ @[simp] def no_empty_coalition : MSFormula J -> Prop \ -/
+/-\   | ⊥  := true \ -/
+/-\   | (P n)   := true \ -/
+/-\   | (φ & ψ) := no_empty_coalition φ ∧ no_empty_coalition ψ \ -/
+/-\   | (# φ)   := no_empty_coalition φ \ -/
+/-\   | (φ ⇒ ψ) := no_empty_coalition φ ∧ no_empty_coalition ψ \ -/
+/-\   | (φ ⇔ ψ) := no_empty_coalition φ ∧ no_empty_coalition ψ \ -/
+/-\   | (A φ)   := no_empty_coalition φ \ -/
+/-\   | (E_indiv j ; φ) := no_empty_coalition φ \ -/
+/-\   | (E_dist js ; φ) := no_empty_coalition φ ∧ js.nonempty \ -/
+/-\   | (E_com js ; φ)  := no_empty_coalition φ ∧ js.nonempty \ -/
+/-\   | (S_indiv j ; φ) := no_empty_coalition φ \ -/
+/-\   | (S_dist js ; φ) := no_empty_coalition φ ∧ js.nonempty \ -/
+/-\   | (S_com js ; φ)  := no_empty_coalition φ ∧ js.nonempty \ -/
+
+/-\ -- multi-source generalisation of the ealier translation result \ -/
+/-\ --% latex_label: thm_collective_s4s5_translation \ -/
+/-\ theorem ms_semantic_translation : \ -/
+/-\   ∀ m : MSModel α J, ms_closed_under_unions m -> ms_closed_under_intersections m -> \ -/
+/-\     ∀ φ : MSFormula J, no_empty_coalition φ -> ∀ x : α, \ -/
+/-\       ms_sat m x φ <-> ms_ksat (ms_expmodel_to_rmodel m) x (translation φ) := \ -/
+/-\ begin \ -/
+/-\   intros m hmunions hmint θ hne, \ -/
+/-\   induction θ, \ -/
+/-\   case falsum \ -/
+/-\     { intro x, refl }, \ -/
+/-\   case atom : n \ -/
+/-\     { intro x; refl }, \ -/
+/-\   case and : φ ψ ihφ ihψ \ -/
+/-\     { intro x; simp at hne; exact and_congr (ihφ hne.left x) (ihψ hne.right x) }, \ -/
+/-\   case neg : φ ih \ -/
+/-\     { intro x; exact not_congr (ih hne x) }, \ -/
+/-\   case implies : φ ψ ihφ ihψ \ -/
+/-\     { intro x; simp at hne; exact imp_congr (ihφ hne.left x) (ihψ hne.right x) }, \ -/
+/-\   case iff : φ ψ ihφ ihψ \ -/
+/-\     { intro x; simp at hne; exact iff_congr (ihφ hne.left x) (ihψ hne.right x) }, \ -/
+/-\   case univ : φ ih \ -/
+/-\     { intro x; apply forall_congr; intro y; exact (ih hne y) }, \ -/
+/-\   -- the cases of expertise and soundness all use the general results \ -/
+/-\   -- exp_translation and sound_translation, plus results here on the relations \ -/
+/-\   -- associated with collective expertise \ -/
+/-\   case exp_indiv : j φ ih \ -/
+/-\     { \ -/
+/-\       intro x, \ -/
+/-\       simp at hne, \ -/
+/-\       apply ep_connection.exp_translation (ih hne), \ -/
+/-\         exact hmunions j, \ -/
+/-\         exact hmint j \ -/
+/-\     }, \ -/
+/-\   case sound_indiv : j φ ih \ -/
+/-\     { \ -/
+/-\       intro x, \ -/
+/-\       simp at hne, \ -/
+/-\       apply ep_connection.sound_translation (ih hne), \ -/
+/-\         exact hmunions j, \ -/
+/-\         exact hmint j, \ -/
+/-\     }, \ -/
+/-\   case exp_dist : js φ ih \ -/
+/-\     { \ -/
+/-\       intro x, \ -/
+/-\       simp, \ -/
+/-\       let a := {y | ms_sat m y φ}, \ -/
+/-\       let b := {y | ms_ksat (ms_expmodel_to_rmodel m) y (translation φ)}, \ -/
+/-\       simp at hne, \ -/
+/-\       rw @ep_connection.exp_translation α (dist_expertise m js) a b \ -/
+/-\         dist_closed_unions dist_closed_intersections (ih hne.left), \ -/
+/-\       apply forall_congr, \ -/
+/-\       intro y, \ -/
+/-\       apply imp_congr, \ -/
+/-\         refl, \ -/
+/-\         apply forall_congr, \ -/
+/-\         intro z, \ -/
+/-\         apply imp_congr, \ -/
+/-\           exact dist_ep_relation_intersection m js y z, \ -/
+/-\           refl \ -/
+/-\     }, \ -/
+/-\   case sound_dist : js φ ih \ -/
+/-\     { \ -/
+/-\       intro x, \ -/
+/-\       simp, \ -/
+/-\       let a := {y | ms_sat m y φ}, \ -/
+/-\       let b := {y | ms_ksat (ms_expmodel_to_rmodel m) y (translation φ)}, \ -/
+/-\       simp at hne, \ -/
+/-\       rw @ep_connection.sound_translation α (dist_expertise m js) a b \ -/
+/-\         dist_closed_unions dist_closed_intersections x (ih hne.left), \ -/
+/-\       simp, \ -/
+/-\       apply exists_congr, \ -/
+/-\       intro y, \ -/
+/-\       apply and_congr, \ -/
+/-\         exact dist_ep_relation_intersection m js x y, \ -/
+/-\         refl, \ -/
+/-\     }, \ -/
+/-\     case exp_com : js φ ih \ -/
+/-\     { \ -/
+/-\       intro x, \ -/
+/-\       simp, \ -/
+/-\       let a := {y | ms_sat m y φ}, \ -/
+/-\       let b := {y | ms_ksat (ms_expmodel_to_rmodel m) y (translation φ)}, \ -/
+/-\       simp at hne, \ -/
+/-\       have hjs : js.nonempty, from hne.right, \ -/
+/-\       rw @ep_connection.exp_translation α (com_expertise m js) a b \ -/
+/-\         (com_closed_unions hmunions) (com_closed_intersections hmint) \ -/
+/-\         (ih hne.left), \ -/
+/-\       apply forall_congr, \ -/
+/-\       intro y, \ -/
+/-\       apply imp_congr, \ -/
+/-\         refl, \ -/
+/-\         apply forall_congr, \ -/
+/-\         intro z, \ -/
+/-\         apply imp_congr, \ -/
+/-\           let h := com_ep_relation_union m js hjs hmunions hmint y z, \ -/
+/-\           simp at h, \ -/
+/-\           exact h, \ -/
+/-\           refl, \ -/
+/-\     }, \ -/
+/-\     case sound_com : js φ ih \ -/
+/-\     { \ -/
+/-\       intro x, \ -/
+/-\       simp, \ -/
+/-\       let a := {y | ms_sat m y φ}, \ -/
+/-\       let b := {y | ms_ksat (ms_expmodel_to_rmodel m) y (translation φ)}, \ -/
+/-\       simp at hne, \ -/
+/-\       have hjs : js.nonempty, from hne.right, \ -/
+/-\         rw @ep_connection.sound_translation α (com_expertise m js) a b \ -/
+/-\           (com_closed_unions hmunions) (com_closed_intersections hmint) x \ -/
+/-\           (ih hne.left), \ -/
+/-\         simp, \ -/
+/-\         apply exists_congr, \ -/
+/-\         intro y, \ -/
+/-\         apply and_congr, \ -/
+/-\           let h := com_ep_relation_union m js hjs hmunions hmint x y, \ -/
+/-\           simp at h, \ -/
+/-\           exact h, \ -/
+/-\           refl \ -/
+/-\     } \ -/
+/-\   end \ -/
 
 end multi_source
