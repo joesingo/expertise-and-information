@@ -1,4 +1,4 @@
-# Expertise and knowledge: a modal logic perspective
+# Expertise and information: an epistemic logic perspective
 
 This repository contains the LaTeX source for the paper, the appendix
 (containing missing proofs), and formalisation of some of the proofs in Lean.
